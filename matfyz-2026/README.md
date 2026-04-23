@@ -4,6 +4,8 @@
 
 Naskenovali jste QR kód na našem stánku – super. Tady najdete vše, co jsme nestihli říct osobně.
 
+Pokud nechcete hrát hru, nebo jste se k ní nedostali, ale chcete zůstat v kontaktu, dejte nám svůj mail [tady](https://forms.office.com/Pages/ResponsePage.aspx?id=wjfbr_ETeEq5HoV0msjoB9j-I_FWGz9Bg9rBZUMYRNRUNkxLQU0zNVBYRjJHTE9WOUdENkdVUEQ5Ti4u).
+
 ---
 
 ## 🐛 BugHunter – hra z našeho stánku
@@ -36,14 +38,11 @@ Dnes Mews zaměstnává přes **40 absolventů a studentů Matfyzu** a jsme stra
 
 ### Pepa Starýchfojtů – z Dnů firem na Matfyzu až po CPTO
 
-**Josef Starýchfojtů** (kolegové mu říkají Pepa) je živým důkazem toho, co se dá stihnout, když začnete brzy. V prvním ročníku bakaláře šel na Dny firem – a odešel s první prací v Mews jako řadový vývojář.
+Pepa je živým důkazem toho, co se dá stihnout, když začnete brzy. V prvním ročníku bakaláře šel na Dny firem – a odešel s první prací v Mews jako řadový vývojář.
 
 O pár let později je **CPTO (Chief Product & Technology Officer)** celé firmy a v roce 2025 se dostal na seznam **Forbes 30 pod 30**.
 
 Jeho kariérní cesta v Mews: softwarový inženýr → staff engineer → team manager → director → VP of Engineering → CTO → CPTO.
-
-**Pepovy rady pro studenty:**
-> *„Začněte pracovat již při studiu, ale alespoň nějaký stupeň studia dodělejte – vysoká škola vás naučí přemýšlet a hledat řešení. Pro firmy je nejdůležitější, zda se k nim 'hodíte' a zda máte chuť se učit, konkrétní znalosti jsou až na třetím místě. Proto se nebojte a zkuste to.“*
 
 Více o Pepovi:
 - [Forbes: Josef Starýchfojtů – Forbes 30 pod 30 (2025)](https://forbes.cz/lists/forbes-30-pod-30-2025/josef-starychfojtu/)
@@ -64,13 +63,23 @@ Naši kolegové pravidelně přednášejí v předmětech na MFF UK:
 
 ---
 
-## Proč Mews pro Matfyzáky?
-
-- **Práce při studiu** – jsme flexibilní, rozumíme zkouškovému období
-- **Reálné projekty od prvního dne** – žádná fake-práce pro stážisty
-- **Rychlý kariérní růst** – Pepa je sice trochu over-achiever, ale i ostatní Matfyzáci v Mews vyrostli
-- **Technická hloubka** – funkcionální programování, DDD, event sourcing, cloud-native architektura
-- **Mezinárodní prostředí** – tým ve 20+ zemích, produkty v 85+ zemích
+## Jak u nás vypadá engineering
+ 
+**Stack:**
+- **Backend:** C#/.NET na Azure – velký monolith jako jádro PMS + rostoucí ekosystém Atlas mikroservisů, do kterých aktivně migrujeme
+- **Frontend:** React/TypeScript
+- **Mobilní appky:** Flutter (Kiosk, Digital Key), React Native
+- **Databáze:** Azure SQL, Redis, Azure Databricks
+- **Infrastruktura:** Azure (primárně) + Terraform, GitHub Actions, Octopus Deploy
+- **Observabilita:** Coralogix, Sentry, Azure Monitor
+**AI-native engineering:**
+ 
+Každý inženýr v Mews má k dispozici **Claude Code** jako primární AI coding assistant – hrazený firmou. Máme interní marketplace pluginů s Mews-specific skills pro Claude, včetně Atlas skilu, který umí scaffoldovat celé mikroservisy s vědomostí našich building blocks a guardrails. Agentic workflows jsou součástí každodenní práce, ne nice-to-have.
+ 
+**DevOps kultura:**
+- Více deployů do produkce denně
+- Cross-funkční týmy vlastní svůj kód, incidenty i deployment
+- SRE praktiky, [incident.io](https://incident.io), měsíční drily
 
 ---
 
