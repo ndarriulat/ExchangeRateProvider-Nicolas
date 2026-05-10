@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ExchangeRateUpdater
 {
@@ -26,8 +27,9 @@ namespace ExchangeRateUpdater
 
         private IEnumerable<ExchangeRate> GetSourceExchangeRates(IEnumerable<Currency> currencies)
         {
-            var cnbRates = _exchangeRateSource.GetExchangeRates(currencies);
-            return cnbRates;
+            // Public API stays synchronous per assignment; the source uses async HTTP.
+            var task = _exchangeRateSource.GetExchangeRates(currencies);
+            return task.ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         private IEnumerable<ExchangeRate> GetFilteredRates(IEnumerable<ExchangeRate> cnbRates, IEnumerable<Currency> currencies)

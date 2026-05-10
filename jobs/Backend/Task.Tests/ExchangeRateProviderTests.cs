@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ExchangeRateUpdater;
+using System.Threading.Tasks;
 using Xunit;
 
 public class ExchangeRateProviderTests
@@ -145,9 +146,9 @@ public class ExchangeRateProviderTests
             _rates = rates.ToList();
         }
 
-        public IEnumerable<ExchangeRate> GetExchangeRates(IEnumerable<Currency> currencies)
+        public Task<IEnumerable<ExchangeRate>> GetExchangeRates(IEnumerable<Currency> currencies)
         {
-            return _rates;
+            return Task.FromResult<IEnumerable<ExchangeRate>>(_rates);
         }
     }
 }

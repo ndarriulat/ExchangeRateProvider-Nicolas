@@ -2,7 +2,7 @@
 
 This file records lightweight technical decisions made during this task.
 
-## 2026-05-10 - Project docs and AI collaboration defaults
+## Project docs and AI collaboration defaults
 
 ### Context
 We want consistent planning and decision history, and a predictable way to collaborate with AI assistants (step-by-step discussion, no silent architectural choices).
@@ -21,7 +21,7 @@ We want consistent planning and decision history, and a predictable way to colla
 - When scope or design shifts, edit `PLAN.md` and add a short entry here if the shift reflects a real decision.
 - Optional Cursor plans under `.cursor/plans/` may still exist; treat `PLAN.md` as authoritative unless the team agrees otherwise.
 
-## 2026-05-10 - No root `AGENTS.md` (for now)
+## No root `AGENTS.md` (for now)
 
 ### Context
 We considered adding a root-level `AGENTS.md` for discoverability and cross-tool conventions, versus relying only on Cursor project rules and backend docs.
@@ -39,7 +39,63 @@ We considered adding a root-level `AGENTS.md` for discoverability and cross-tool
 - Anyone looking for “how agents should work here” should open `.cursor/rules/` and `jobs/Backend/PLAN.md` / `DECISIONS.md`.
 - If we add `AGENTS.md` later, keep it as a short index (links only) unless we explicitly deprecate overlap with `.cursor/rules`.
 
-## 2026-05-10 - Composition root in `Program.cs` (no default `ExchangeRateProvider` ctor)
+## CNB daily rates URL in `appsettings.json` and HTTP via `IHttpClientFactory`
+
+### Context
+`CnbExchangeRateSource` needs the public CNB daily rates document URL. We also want to avoid creating a new `HttpClient` on every call (socket churn and related issues).
+
+### Decision
+- Store the CNB **daily kurz** URL in **`appsettings.json`** (under the Task project, e.g. [`Task/appsettings.json`](Task/appsettings.json)), read through **`IConfiguration`**, so the endpoint can change without editing code.
+- Use **`IHttpClientFactory`** (e.g. `AddHttpClient` / typed or named client registration) to obtain **`HttpClient`** instances with correct **lifetime and handler pooling**, instead of `new HttpClient()` inside the source.
+
+### Why this choice
+- **Config file:** separates environment-specific or future URL changes from compiled logic; matches common .NET hosting patterns.
+- **HttpClient factory:** recommended default for production-style .NET apps; addresses lifetime concerns that a per-call `new HttpClient()` does not.
+
+### Consequences
+- The console app composition root ([`Task/Program.cs`](Task/Program.cs)) should build configuration (JSON), register HTTP clients, and pass settings into `CnbExchangeRateSource` (or bind options) as part of the user’s implementation.
+- Additional **NuGet** packages are expected for configuration + HTTP client extensions (e.g. `Microsoft.Extensions.Configuration.Json`, `Microsoft.Extensions.Http`, and hosting/DI primitives as needed)—exact packages follow the chosen bootstrap style (`Host`, `ServiceCollection`, etc.).
+
+## Generic host for console bootstrap (`Host.CreateApplicationBuilder`)
+
+### Context
+The Task executable needs JSON configuration (e.g. CNB URL), options binding (`Configure<CnbOptions>`), and `AddHttpClient` registration. The main alternative is a **manual** stack: `ConfigurationBuilder` + `ServiceCollection` without a host.
+
+### Decision
+Bootstrap the console app with **`Host.CreateApplicationBuilder(args)`** (generic host): use **`builder.Configuration`** and **`builder.Services`** for options, HTTP clients, and other DI registrations, then **`Build()`** and resolve services.
+
+### Why this choice
+- **Single, conventional pipeline:** default `appsettings` loading (and environment-specific files) plus DI in one place, matching current .NET guidance for small executables.
+- **Less boilerplate** than assembling `ConfigurationBuilder`, `Build()`, and `ServiceCollection` by hand for the same features.
+
+### Alternatives considered
+- **Manual `ServiceCollection` + `ConfigurationBuilder` only:** valid when minimizing dependencies or when another host already owns configuration/DI; not chosen for this Task project.
+
+### Consequences
+- Add **`Microsoft.Extensions.Hosting`** (and **`Microsoft.Extensions.Http`** for `AddHttpClient`) to the Task project; implement [`Task/Program.cs`](Task/Program.cs) around the host builder instead of only `new`ing types in `Main`.
+- `Configure<CnbOptions>(builder.Configuration.GetSection(…))` and related registrations live next to other `builder.Services` calls in the composition root.
+
+## Use `Microsoft.Extensions.Options` (`IOptions<CnbOptions>`), not a custom `IOptions` type
+
+### Context
+It is tempting to add a small project-local interface (e.g. a non-generic `IOptions` with `DailyKurzUrl`) to abstract configuration for [`CnbExchangeRateSource`](Task/CnbExchangeRateSource.cs).
+
+### Decision
+- **Do not** introduce a custom **`IOptions`** (or similarly named) interface in the Task project for this purpose.
+- Inject **`IOptions<CnbOptions>`** from **`Microsoft.Extensions.Options`** (pulled in via the hosting/options stack), bind settings with **`Configure<CnbOptions>(…)`**, and read the URL via **`options.Value`** (e.g. **`options.Value.DailyKurzUrl`**).
+
+### Why this choice
+- The name **`IOptions`** and the **`IOptions<T>`** pattern are **standard in .NET**; a local **`IOptions`** type **collides conceptually** with **`IOptions<T>`** and confuses readers, docs, and `using` resolution.
+- **`Configure<CnbOptions>`** is already the chosen wiring; **`IOptions<CnbOptions>`** is the **intended** consumer API for that binding.
+
+### Alternatives considered
+- **Custom interface** (e.g. `ICnbSettings`) if we ever need an extra indirection for tests—use a **distinct name** that does not overlap **`IOptions<T>`**.
+
+### Consequences
+- [`CnbExchangeRateSource`](Task/CnbExchangeRateSource.cs) should take **`IOptions<CnbOptions>`** (plus **`HttpClient`** from **`IHttpClientFactory`**), not a hand-rolled options interface.
+- Remove any obsolete **`IOptions.cs`** in [`Task`](Task) that duplicates this role.
+
+## Composition root in `Program.cs` (no default `ExchangeRateProvider` ctor)
 
 ### Context
 `ExchangeRateProvider` depends on `IExchangeRateSource`. A common shortcut is a parameterless constructor that chains to `new CnbExchangeRateSource()` (or similar) so callers can write `new ExchangeRateProvider()` without wiring.
@@ -60,7 +116,7 @@ We considered adding a root-level `AGENTS.md` for discoverability and cross-tool
 - Every runnable entry point must create or receive an `IExchangeRateSource` before constructing `ExchangeRateProvider`.
 - Unit tests continue to inject fakes via the same constructor; no convenience ctor is required for production.
 
-## 2026-05-08 - Use xUnit for unit tests
+## Use xUnit for unit tests
 
 ### Context
 We need a first unit-test setup for the .NET backend task and must choose a test framework.

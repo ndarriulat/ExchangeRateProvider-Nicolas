@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace ExchangeRateUpdater
 {
@@ -23,15 +25,18 @@ namespace ExchangeRateUpdater
         {
             try
             {
-                var exchangeRateSource = new CnbExchangeRateSource();
-                var provider = new ExchangeRateProvider(exchangeRateSource);
-                var rates = provider.GetExchangeRates(currencies);
+                var builder = Host.CreateApplicationBuilder(args);
+
+                builder.Services.Configure<CnbOptions>(
+                    builder.Configuration.GetSection(CnbOptions.SectionName)); 
+                builder.Services.AddHttpClient<IExchangeRateSource, CnbExchangeRateSource>();
+                builder.Services.AddTransient<ExchangeRateProvider>();
+                using var host = builder.Build();
+                var exchangeRateProvider = host.Services.GetRequiredService<ExchangeRateProvider>();
+                var rates = exchangeRateProvider.GetExchangeRates(currencies);
 
                 Console.WriteLine($"Successfully retrieved {rates.Count()} exchange rates:");
-                foreach (var rate in rates)
-                {
-                    Console.WriteLine(rate.ToString());
-                }
+                foreach (var rate in rates) Console.WriteLine(rate.ToString());
             }
             catch (Exception e)
             {
