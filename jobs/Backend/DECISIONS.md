@@ -39,6 +39,27 @@ We considered adding a root-level `AGENTS.md` for discoverability and cross-tool
 - Anyone looking for “how agents should work here” should open `.cursor/rules/` and `jobs/Backend/PLAN.md` / `DECISIONS.md`.
 - If we add `AGENTS.md` later, keep it as a short index (links only) unless we explicitly deprecate overlap with `.cursor/rules`.
 
+## 2026-05-10 - Composition root in `Program.cs` (no default `ExchangeRateProvider` ctor)
+
+### Context
+`ExchangeRateProvider` depends on `IExchangeRateSource`. A common shortcut is a parameterless constructor that chains to `new CnbExchangeRateSource()` (or similar) so callers can write `new ExchangeRateProvider()` without wiring.
+
+### Decision
+- **Do not** add a parameterless `ExchangeRateProvider()` that internally `new`s a concrete source.
+- Treat **[`Program.cs`](Task/Program.cs)** as the **composition root**: the executable constructs the concrete `IExchangeRateSource` implementation and passes it to `new ExchangeRateProvider(IExchangeRateSource)`.
+
+### Why this choice
+- Dependencies stay **visible** at the application entry point.
+- `ExchangeRateProvider` avoids **hard-coding** a single concrete source implementation.
+- Aligns with explicit DI-style composition without pulling in a full container for this small task.
+
+### Alternatives considered
+- Parameterless ctor delegating to `new CnbExchangeRateSource()`: fewer lines in `Program`, but hides the dependency and couples the provider to one default implementation.
+
+### Consequences
+- Every runnable entry point must create or receive an `IExchangeRateSource` before constructing `ExchangeRateProvider`.
+- Unit tests continue to inject fakes via the same constructor; no convenience ctor is required for production.
+
 ## 2026-05-08 - Use xUnit for unit tests
 
 ### Context

@@ -9,6 +9,8 @@ alwaysApply: true
 
 - **Step by step:** Discuss and implement **one step at a time** unless the user explicitly asks to batch or skip ahead.
 - **No surprise decisions:** Do **not** choose libraries, frameworks, or structural changes (e.g. new classes, folders, or public APIs) on the maintainer’s behalf. Present **options and tradeoffs** and wait for an explicit choice when it matters.
+- **No unsolicited code:** Do **not** write or edit application code unless the maintainer **explicitly asks** you to. It is fine to explain approaches, sketch snippets in chat when helpful, and review or suggest changes in prose—but avoid applying patches or creating/editing source files until asked.
+- **`Program.cs` (current):** The maintainer is wiring [`jobs/Backend/Task/Program.cs`](jobs/Backend/Task/Program.cs) themselves (composition root, `IExchangeRateSource` + `ExchangeRateProvider`). Do **not** change that file unless they explicitly request it.
 
 ## Where documentation lives
 

@@ -1,4 +1,11 @@
-public interface IExchangeRateSource
+using System.Collections.Generic;
+using ExchangeRateUpdater;
+
+namespace ExchangeRateUpdater
 {
-    public IEnumerable<ExchangeRate> GetExchangeRates(IEnumerable<Currency> currencies);
+
+    public interface IExchangeRateSource
+    {
+        public IEnumerable<ExchangeRate> GetExchangeRates(IEnumerable<Currency> currencies);
+    }
 }

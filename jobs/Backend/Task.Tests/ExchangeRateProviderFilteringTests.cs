@@ -59,12 +59,32 @@ public class ExchangeRateProviderFilteringTests
         IEnumerable<ExchangeRate> cnbRates,
         IEnumerable<Currency> currencies)
     {
-        var provider = new ExchangeRateProvider();
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource());
         var method = typeof(ExchangeRateProvider).GetMethod("GetFilteredRates", BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(method);
 
         var result = method!.Invoke(provider, new object[] { cnbRates, currencies });
         Assert.NotNull(result);
         return (IEnumerable<ExchangeRate>)result!;
+    }
+
+    private sealed class FakeExchangeRateSource : IExchangeRateSource
+    {
+        private readonly IReadOnlyList<ExchangeRate> _rates;
+
+        public FakeExchangeRateSource()
+            : this(Enumerable.Empty<ExchangeRate>())
+        {
+        }
+
+        public FakeExchangeRateSource(IEnumerable<ExchangeRate> rates)
+        {
+            _rates = rates.ToList();
+        }
+
+        public IEnumerable<ExchangeRate> GetExchangeRates(IEnumerable<Currency> currencies)
+        {
+            return _rates;
+        }
     }
 }

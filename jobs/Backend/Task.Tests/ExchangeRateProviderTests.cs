@@ -6,21 +6,148 @@ using Xunit;
 public class ExchangeRateProviderTests
 {
     [Fact]
-    public void GetExchangeRates_returns_empty_when_source_returns_no_rates()
+    public void GetExchangeRates_WhenSourceReturnsNoRates_ReturnsEmpty()
     {
-        var provider = new ExchangeRateProvider();
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource());
         var rates = provider.GetExchangeRates(new List<Currency> { new Currency("USD") });
 
         Assert.Empty(rates);
     }
 
     [Fact]
-    public void GetExchangeRates_returns_rates_when_source_returns_rates()
+    public void GetExchangeRates_WhenRateTouchesRequestedCurrency_ReturnsThatRate()
     {
-        var provider = new ExchangeRateProvider();
-        var rates = provider.GetExchangeRates(new List<Currency> { new Currency("USD") });
+        var usd = new Currency("USD");
+        var czk = new Currency("CZK");
+        var sourceRates = new[] { new ExchangeRate(usd, czk, 25m) };
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
 
-        Assert.NotEmpty(rates);
+        var rates = provider.GetExchangeRates(new List<Currency> { usd }).ToList();
+
+        Assert.Single(rates);
+        Assert.Same(usd, rates[0].SourceCurrency);
+        Assert.Same(czk, rates[0].TargetCurrency);
+        Assert.Equal(25m, rates[0].Value);
     }
 
+    [Fact]
+    public void GetExchangeRates_WhenNoRateMatchesRequest_ReturnsEmpty()
+    {
+        var gbp = new Currency("GBP");
+        var jpy = new Currency("JPY");
+        var sourceRates = new[] { new ExchangeRate(gbp, jpy, 150m) };
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
+
+        var rates = provider.GetExchangeRates(new List<Currency> { new Currency("USD") });
+
+        Assert.Empty(rates);
+    }
+
+    [Fact]
+    public void GetExchangeRates_WhenOnlyUnknownRequestedCurrencies_ReturnsEmpty()
+    {
+        var usd = new Currency("USD");
+        var czk = new Currency("CZK");
+        var sourceRates = new[] { new ExchangeRate(usd, czk, 25m) };
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
+
+        var rates = provider.GetExchangeRates(new List<Currency> { new Currency("XYZ") });
+
+        Assert.Empty(rates);
+    }
+
+    [Fact]
+    public void GetExchangeRates_WhenMultipleRequested_IncludesOnlyRatesTouchingRequestedCurrencies()
+    {
+        var usd = new Currency("USD");
+        var eur = new Currency("EUR");
+        var czk = new Currency("CZK");
+        var sourceRates = new[]
+        {
+            new ExchangeRate(usd, czk, 25m),
+            new ExchangeRate(eur, czk, 24m),
+        };
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
+
+        var rates = provider.GetExchangeRates(new List<Currency> { usd }).ToList();
+
+        Assert.Single(rates);
+        Assert.Same(usd, rates[0].SourceCurrency);
+    }
+
+    [Fact]
+    public void GetExchangeRates_WhenRequestedCurrencyMatchesTargetSide_ReturnsRate()
+    {
+        var usd = new Currency("USD");
+        var czk = new Currency("CZK");
+        var sourceRates = new[] { new ExchangeRate(usd, czk, 25m) };
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
+
+        var rates = provider.GetExchangeRates(new List<Currency> { czk }).ToList();
+
+        Assert.Single(rates);
+        Assert.Equal(25m, rates[0].Value);
+    }
+
+    [Fact]
+    public void GetExchangeRates_WhenMixOfKnownAndUnknownRequested_ReturnsRatesForKnownOnly()
+    {
+        var usd = new Currency("USD");
+        var czk = new Currency("CZK");
+        var sourceRates = new[] { new ExchangeRate(usd, czk, 25m) };
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
+
+        var rates = provider.GetExchangeRates(new List<Currency> { usd, new Currency("XYZ") }).ToList();
+
+        Assert.Single(rates);
+        Assert.Same(usd, rates[0].SourceCurrency);
+    }
+
+    [Fact]
+    public void GetExchangeRates_WhenSourcePublishesSingleDirection_DoesNotSynthesizeInversePair()
+    {
+        var usd = new Currency("USD");
+        var czk = new Currency("CZK");
+        var sourceRates = new[] { new ExchangeRate(usd, czk, 25m) };
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
+
+        var rates = provider.GetExchangeRates(new List<Currency> { usd, czk }).ToList();
+
+        Assert.Single(rates);
+        Assert.Contains(rates, r => r.SourceCurrency == usd && r.TargetCurrency == czk);
+        Assert.DoesNotContain(rates, r => r.SourceCurrency == czk && r.TargetCurrency == usd);
+    }
+
+    [Fact]
+    public void GetExchangeRates_WhenRequestIsEmpty_ReturnsEmptyEvenIfSourceHasRates()
+    {
+        var usd = new Currency("USD");
+        var czk = new Currency("CZK");
+        var sourceRates = new[] { new ExchangeRate(usd, czk, 25m) };
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
+
+        var rates = provider.GetExchangeRates(new List<Currency>());
+
+        Assert.Empty(rates);
+    }
+
+    private sealed class FakeExchangeRateSource : IExchangeRateSource
+    {
+        private readonly IReadOnlyList<ExchangeRate> _rates;
+
+        public FakeExchangeRateSource()
+            : this(Enumerable.Empty<ExchangeRate>())
+        {
+        }
+
+        public FakeExchangeRateSource(IEnumerable<ExchangeRate> rates)
+        {
+            _rates = rates.ToList();
+        }
+
+        public IEnumerable<ExchangeRate> GetExchangeRates(IEnumerable<Currency> currencies)
+        {
+            return _rates;
+        }
+    }
 }

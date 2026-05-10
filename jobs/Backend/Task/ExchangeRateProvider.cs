@@ -6,6 +6,11 @@ namespace ExchangeRateUpdater
     public class ExchangeRateProvider
     {
         private readonly IExchangeRateSource _exchangeRateSource;
+
+        public ExchangeRateProvider(IExchangeRateSource exchangeRateSource)
+        {
+            _exchangeRateSource = exchangeRateSource;
+        }
         /// <summary>
         /// Should return exchange rates among the specified currencies that are defined by the source. But only those defined
         /// by the source, do not return calculated exchange rates. E.g. if the source contains "CZK/USD" but not "USD/CZK",
@@ -14,12 +19,12 @@ namespace ExchangeRateUpdater
         /// </summary>
         public IEnumerable<ExchangeRate> GetExchangeRates(IEnumerable<Currency> currencies)
         {
-            var cnbRates = GetCnbRates();
+            var cnbRates = GetSourceExchangeRates(currencies);
             var filteredRates = GetFilteredRates(cnbRates, currencies);
             return filteredRates;
         }
 
-        private IEnumerable<ExchangeRate> GetCnbRates()
+        private IEnumerable<ExchangeRate> GetSourceExchangeRates(IEnumerable<Currency> currencies)
         {
             var cnbRates = _exchangeRateSource.GetExchangeRates(currencies);
             return cnbRates;
