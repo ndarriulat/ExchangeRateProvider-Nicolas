@@ -5,6 +5,7 @@ namespace ExchangeRateUpdater
 {
     public class ExchangeRateProvider
     {
+        private readonly IExchangeRateSource _exchangeRateSource;
         /// <summary>
         /// Should return exchange rates among the specified currencies that are defined by the source. But only those defined
         /// by the source, do not return calculated exchange rates. E.g. if the source contains "CZK/USD" but not "USD/CZK",
@@ -20,7 +21,7 @@ namespace ExchangeRateUpdater
 
         private IEnumerable<ExchangeRate> GetCnbRates()
         {
-            var cnbRates = new List<ExchangeRate>();
+            var cnbRates = _exchangeRateSource.GetExchangeRates(currencies);
             return cnbRates;
         }
 
@@ -31,10 +32,10 @@ namespace ExchangeRateUpdater
     }
 }
 
-// Hit the CNB public URL and download the daily rates text file
+// 1) Hit the CNB public URL and download the daily rates text file
 
-// Parse it — skip the header lines, split by |, normalise Rate/Amount
+// 2) Parse it — skip the header lines, split by |, normalise Rate/Amount
 
-// Filter down to only the currencies the caller asked for
+// 3) Filter down to only the currencies the caller asked for
 
-// Return them as ExchangeRate objects in the format the skeleton defines
+// 4) Return them as ExchangeRate objects in the format the skeleton defines
