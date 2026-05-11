@@ -34,14 +34,9 @@ namespace ExchangeRateUpdater
 
         private IEnumerable<ExchangeRate> GetFilteredRates(IEnumerable<ExchangeRate> cnbRates, IEnumerable<Currency> currencies)
         {
-            return cnbRates.Where(rate => currencies.Contains(rate.SourceCurrency) || currencies.Contains(rate.TargetCurrency));
+            return cnbRates.Where(rate => currencies.Contains(rate.SourceCurrency) && currencies.Contains(rate.TargetCurrency));
         }
     }
 }
 
-// 1) Hit the CNB public URL and download the daily rates text file
-// & 2) Parse it — skip the header lines, split by |, normalise Rate/Amount
 
-// 3) Filter down to only the currencies the caller asked for
-
-// 4) Return them as ExchangeRate objects in the format the skeleton defines
