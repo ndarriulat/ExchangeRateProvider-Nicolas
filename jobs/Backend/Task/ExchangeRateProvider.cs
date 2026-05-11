@@ -40,8 +40,7 @@ namespace ExchangeRateUpdater
 }
 
 // 1) Hit the CNB public URL and download the daily rates text file
-
-// 2) Parse it — skip the header lines, split by |, normalise Rate/Amount
+// & 2) Parse it — skip the header lines, split by |, normalise Rate/Amount
 
 // 3) Filter down to only the currencies the caller asked for
 

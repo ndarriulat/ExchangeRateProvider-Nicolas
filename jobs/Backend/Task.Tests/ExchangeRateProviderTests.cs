@@ -32,6 +32,23 @@ public class ExchangeRateProviderTests
     }
 
     [Fact]
+    public void GetExchangeRates_WhenRequestedCurrencyHasSameCodeAsSourceCurrency_ReturnsThatRate()
+    {
+        var sourceRates = new[]
+        {
+            new ExchangeRate(new Currency("USD"), new Currency("CZK"), 25m),
+        };
+        var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
+
+        var rates = provider.GetExchangeRates(new List<Currency> { new Currency("USD") }).ToList();
+
+        Assert.Single(rates);
+        Assert.Equal("USD", rates[0].SourceCurrency.Code);
+        Assert.Equal("CZK", rates[0].TargetCurrency.Code);
+        Assert.Equal(25m, rates[0].Value);
+    }
+
+    [Fact]
     public void GetExchangeRates_WhenNoRateMatchesRequest_ReturnsEmpty()
     {
         var gbp = new Currency("GBP");

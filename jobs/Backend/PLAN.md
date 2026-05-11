@@ -4,10 +4,11 @@ Authoritative task plan for the `jobs/Backend` exercise. Update this file when t
 
 ## Agreed design (from discussion)
 
-- **Fetch contract (Option A):** `IExchangeRateSource` exposes a method that returns the **raw daily rates document** (e.g. `string` or `Task<string>`), not pre-parsed models. Parsing stays separate (step 2), so swapping banks later means a new `(source + parser)` pair rather than overloading one parser.
+- **Source contract:** `IExchangeRateSource` exposes a method that returns parsed `ExchangeRate` objects. The concrete source owns any source-specific fetching and parsing needed to produce those objects.
+- **CNB parsing ownership:** CNB text parsing stays inside `CnbExchangeRateSource` for now, because the pipe-delimited CNB daily document format is specific to that source. Do **not** add a parser interface unless parsing grows enough to justify a separate type.
 - **Abstraction name:** `IExchangeRateSource` (concrete implementation provided separately).
-- **Provider role:** [`Task/ExchangeRateProvider.cs`](Task/ExchangeRateProvider.cs) orchestrates: call source → parse → filter → return. A private helper such as `GetCnbRates` (or renamed once generic) stays **indirectly** testable via `GetExchangeRates` with a test double for `IExchangeRateSource`.
-- **Testability:** Unit tests mock/fake `IExchangeRateSource` to return a fixed snippet; no real HTTP in provider tests. Any HTTP/`HttpClient` behaviour belongs in the **concrete source** implementation (optional dedicated tests there).
+- **Provider role:** [`Task/ExchangeRateProvider.cs`](Task/ExchangeRateProvider.cs) orchestrates: call source → filter → return. It should not know CNB document shape, header lines, `|` columns, decimal separators, or amount/rate normalisation rules.
+- **Testability:** Provider tests use a fake `IExchangeRateSource` returning fixed `ExchangeRate` instances. CNB HTTP and parsing behaviour belong in dedicated `CnbExchangeRateSource` tests with stubbed HTTP.
 
 ## Project layout (`IExchangeRateSource` placement)
 
@@ -22,36 +23,42 @@ flowchart LR
   Program[Program]
   Provider[ExchangeRateProvider]
   Source[IExchangeRateSource]
-  Parse[CNB_text_parser]
+  CnbSource[CnbExchangeRateSource]
+  Fetch[Fetch_CNB_text]
+  Parse[Parse_CNB_text_to_rates]
   Filter[GetFilteredRates]
   Program --> Provider
   Provider --> Source
-  Provider --> Parse
-  Parse --> Filter
+  Source --> CnbSource
+  CnbSource --> Fetch
+  Fetch --> Parse
+  Parse --> Provider
+  Provider --> Filter
 ```
 
 ## Numbered work items (aligned with comments in [`Task/ExchangeRateProvider.cs`](Task/ExchangeRateProvider.cs))
 
-1. **Fetch** — Implement `IExchangeRateSource` + concrete type (e.g. CNB URL, `HttpClient`). Inject `IExchangeRateSource` into `ExchangeRateProvider` via constructor. Replace the empty body of `GetCnbRates` (or equivalent) with: obtain raw text from the source, then hand off to parsing.
-2. **Parse** — From the raw text: skip CNB header lines, split data lines by `|`, read country/code/amount/rate fields, **normalise** “rate per `Amount` units” into a single `decimal` suitable for `ExchangeRate.Value`, and build `ExchangeRate` instances with the **correct** `SourceCurrency` / `TargetCurrency` convention (CNB publishes foreign currency vs CZK — match what the task expects, typically one leg CZK).
-3. **Filter** — Keep using `GetFilteredRates` logic for “only pairs involving requested currencies” and **do not** synthesise inverse pairs ([`Task.Tests/ExchangeRateProviderFilteringTests.cs`](Task.Tests/ExchangeRateProviderFilteringTests.cs) encodes that). **Watch-out:** [`Task/Currency.cs`](Task/Currency.cs) does not override `Equals`/`GetHashCode`, so `currencies.Contains(rate.SourceCurrency)` uses **reference** equality; either compare by `Code` (e.g. `Any(c => c.Code == rate.SourceCurrency.Code)`) or ensure the same `Currency` instances flow through — decide when implementing step 3.
+1. **Fetch** — Implement `IExchangeRateSource` + concrete CNB type (CNB URL, `HttpClient`, options). Inject `IExchangeRateSource` into `ExchangeRateProvider` via constructor. The concrete source fetches the raw CNB daily text and returns parsed `ExchangeRate` objects.
+2. **Parse** — Inside `CnbExchangeRateSource`, from the raw text: skip CNB header lines, split data lines by `|`, read country/code/amount/rate fields, **normalise** “rate per `Amount` units” into a single `decimal` suitable for `ExchangeRate.Value`, and build `ExchangeRate` instances with the **correct** `SourceCurrency` / `TargetCurrency` convention (CNB publishes foreign currency vs CZK — match what the task expects, typically one leg CZK).
+3. **Filter** — Keep using `GetFilteredRates` logic for “only pairs involving requested currencies” and **do not** synthesise inverse pairs ([`Task.Tests/ExchangeRateProviderFilteringTests.cs`](Task.Tests/ExchangeRateProviderFilteringTests.cs) encodes that). [`Task/Currency.cs`](Task/Currency.cs) now implements value equality by `Code`, so `currencies.Contains(rate.SourceCurrency)` works for separate `Currency` instances with the same ISO code.
 4. **Return** — `GetExchangeRates` returns `IEnumerable<ExchangeRate>` as today; remove or relocate the scratch comments at the bottom of `ExchangeRateProvider.cs` once behaviour is implemented.
 
 ## Wiring and tests
 
-- **Composition:** [`Task/Program.cs`](Task/Program.cs) currently does `new ExchangeRateProvider()`. After ctor injection, construct the real `IExchangeRateSource` implementation and pass it in (same place you’d register DI in a larger app).
+- **Composition:** [`Task/Program.cs`](Task/Program.cs) is the composition root. It wires the real `IExchangeRateSource` implementation and passes it to `ExchangeRateProvider` via DI or explicit construction.
 - **Tests to update/add:**
-  - [`Task.Tests/ExchangeRateProviderTests.cs`](Task.Tests/ExchangeRateProviderTests.cs): pass a fake `IExchangeRateSource`; assert empty vs non-empty using canned text.
+  - [`Task.Tests/ExchangeRateProviderTests.cs`](Task.Tests/ExchangeRateProviderTests.cs): pass a fake `IExchangeRateSource`; assert empty vs non-empty using canned `ExchangeRate` instances.
   - [`Task.Tests/ExchangeRateProviderFilteringTests.cs`](Task.Tests/ExchangeRateProviderFilteringTests.cs): `InvokeGetFilteredRates` uses `new ExchangeRateProvider()` — update to a ctor that accepts a dummy source (or a test-specific helper) once the provider requires `IExchangeRateSource`.
-  - Add parsing-focused tests (fixture: small multiline CNB-like string → expected `ExchangeRate` list) either on the provider with a fake source or on a dedicated parser type if you extract one.
+  - [`Task.Tests/CnbExchangeRateSourceIntegrationTests.cs`](Task.Tests/CnbExchangeRateSourceIntegrationTests.cs): use stubbed HTTP responses to cover CNB document parsing and HTTP failures.
 
 ## Checklist (high level)
 
-- [ ] Add `IExchangeRateSource` + CNB HTTP implementation; inject into `ExchangeRateProvider` ctor
-- [ ] Parse raw CNB text to `IEnumerable<ExchangeRate>` (headers, pipes, amount/rate normalisation, CZK leg)
-- [ ] Fix filtering vs `Currency` equality if needed; wire `GetExchangeRates` end-to-end
-- [ ] Update `Program` composition; adjust tests + add parse / fake-source tests
+- [x] Add `IExchangeRateSource` + CNB HTTP implementation; inject into `ExchangeRateProvider` ctor
+- [x] Parse raw CNB text to `IEnumerable<ExchangeRate>` inside `CnbExchangeRateSource` (headers, pipes, amount/rate normalisation, CZK leg)
+- [x] Fix filtering vs `Currency` equality if needed; wire `GetExchangeRates` end-to-end
+- [x] Update `Program` composition to wire source into provider
+- [x] Adjust provider/filtering tests to use fake or dummy sources; keep source tests for HTTP parsing
 
 ## Open choice (decide when coding)
 
-- **Sync vs async:** `GetExchangeRates` and `Main` are synchronous today. If `IExchangeRateSource` is async (`Task<string>`), choose either an async public API (`GetExchangeRatesAsync` + `Main` using async entry) or a deliberate sync-over-async boundary — document the choice in [`DECISIONS.md`](DECISIONS.md).
+- **Sync vs async:** `GetExchangeRates` and `Main` are synchronous today. `IExchangeRateSource` may still be async because HTTP is async. Choose either an async public API (`GetExchangeRatesAsync` + `Main` using async entry) or a deliberate sync-over-async boundary — document the choice in [`DECISIONS.md`](DECISIONS.md).
