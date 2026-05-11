@@ -59,6 +59,6 @@ flowchart LR
 - [x] Update `Program` composition to wire source into provider
 - [x] Adjust provider/filtering tests to use fake or dummy sources; keep source tests for HTTP parsing
 
-## Open choice (decide when coding)
+## Resolved choice
 
-- **Sync vs async:** `GetExchangeRates` and `Main` are synchronous today. `IExchangeRateSource` may still be async because HTTP is async. Choose either an async public API (`GetExchangeRatesAsync` + `Main` using async entry) or a deliberate sync-over-async boundary — document the choice in [`DECISIONS.md`](DECISIONS.md).
+- **Sync vs async:** Keep the public `GetExchangeRates` API synchronous for this assignment and use a deliberate sync-over-async boundary when calling the async `IExchangeRateSource`. This choice is documented in [`DECISIONS.md`](DECISIONS.md).

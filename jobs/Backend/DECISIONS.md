@@ -243,3 +243,27 @@ Cons
 - Test examples and conventions in this repository should assume xUnit attributes and assertions.
 - If we later need richer fluent assertions or mocking, we can add packages without changing the test framework.
 
+## Keep `ExchangeRateProvider.GetExchangeRates` synchronous
+
+### Context
+
+The assignment-facing API already exposes `ExchangeRateProvider.GetExchangeRates(...)` as a synchronous method returning `IEnumerable<ExchangeRate>`. The concrete CNB source uses HTTP, where the natural .NET API is asynchronous.
+
+### Decision
+
+- Keep `ExchangeRateProvider.GetExchangeRates(...)` synchronous for this task.
+- Keep `IExchangeRateSource.GetExchangeRates(...)` asynchronous so the source can use async HTTP APIs.
+- Use a deliberate sync-over-async boundary inside `ExchangeRateProvider` when calling the source.
+
+### Why this choice
+
+- It preserves the public provider API expected by the exercise and existing callers.
+- It keeps HTTP-specific async behavior inside the source abstraction instead of pushing it through the whole console app for this small task.
+- The boundary is explicit and localized, so it can be changed later if the public API moves to async.
+
+### Consequences
+
+- `ExchangeRateProvider` blocks while waiting for the source result.
+- This is acceptable for the current console assignment, but a server or high-concurrency app should prefer an async provider API such as `GetExchangeRatesAsync`.
+- If the task evolves to support a fully async public surface, update `Program.cs`, provider tests, and this decision.
+
