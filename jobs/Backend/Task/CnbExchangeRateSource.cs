@@ -54,7 +54,7 @@ namespace ExchangeRateUpdater
             return rates;
         }
 
-        private static IReadOnlyList<ExchangeRate> ParseCnbDailyKurz(string content, out int skippedRowCount)
+        private IReadOnlyList<ExchangeRate> ParseCnbDailyKurz(string content, out int skippedRowCount)
         {
             skippedRowCount = 0;
             var rates = new List<ExchangeRate>();
@@ -64,7 +64,7 @@ namespace ExchangeRateUpdater
                 return rates;
             }
 
-            var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = content.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
             if (lines.Length <= CnbHeaderLineCount)
             {
                 return rates;
@@ -82,6 +82,7 @@ namespace ExchangeRateUpdater
                 if (parts.Length < 5)
                 {
                     skippedRowCount++;
+                    LogSkippedRow(i + 1, "expected at least 5 pipe-delimited columns", line);
                     continue;
                 }
 
@@ -92,6 +93,7 @@ namespace ExchangeRateUpdater
                 if (string.IsNullOrEmpty(code))
                 {
                     skippedRowCount++;
+                    LogSkippedRow(i + 1, "missing currency code", line);
                     continue;
                 }
 
@@ -99,12 +101,14 @@ namespace ExchangeRateUpdater
                     || amount <= 0)
                 {
                     skippedRowCount++;
+                    LogSkippedRow(i + 1, $"invalid amount '{amountText}'", line);
                     continue;
                 }
 
                 if (!TryParseCnbDecimal(rateText, out var rate))
                 {
                     skippedRowCount++;
+                    LogSkippedRow(i + 1, $"invalid rate '{rateText}'", line);
                     continue;
                 }
 
@@ -113,6 +117,15 @@ namespace ExchangeRateUpdater
             }
 
             return rates;
+        }
+
+        private void LogSkippedRow(int lineNumber, string reason, string row)
+        {
+            _logger.LogDebug(
+                "Skipping malformed CNB exchange-rate row at line {LineNumber}: {Reason}. Row: {Row}",
+                lineNumber,
+                reason,
+                row);
         }
 
         private static bool TryParseCnbDecimal(string text, out decimal value)
