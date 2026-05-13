@@ -267,3 +267,25 @@ The assignment-facing API already exposes `ExchangeRateProvider.GetExchangeRates
 - This is acceptable for the current console assignment, but a server or high-concurrency app should prefer an async provider API such as `GetExchangeRatesAsync`.
 - If the task evolves to support a fully async public surface, update `Program.cs`, provider tests, and this decision.
 
+## Keep requested-currency filtering in `ExchangeRateProvider`
+
+### Context
+
+`IExchangeRateSource.GetExchangeRates(...)` accepted the requested currencies even though the current source design returns all parsed CNB rows and the provider filters them afterward.
+
+### Decision
+
+- Make `IExchangeRateSource.GetExchangeRates()` parameterless.
+- Keep the requested `Currency` collection on `ExchangeRateProvider.GetExchangeRates(...)`, where filtering happens.
+
+### Why this choice
+
+- The source contract stays focused on fetching and parsing source-provided rates.
+- `ExchangeRateProvider` remains the single place that applies the assignment's requested-currency filtering rules.
+- Avoids an unused parameter in `CnbExchangeRateSource` and fake source implementations.
+
+### Consequences
+
+- Source implementations cannot selectively fetch or filter by requested currencies through the interface.
+- If a future source needs request-aware fetching for performance, revisit the source contract deliberately.
+

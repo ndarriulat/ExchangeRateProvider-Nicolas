@@ -20,15 +20,15 @@ namespace ExchangeRateUpdater
         /// </summary>
         public IEnumerable<ExchangeRate> GetExchangeRates(IEnumerable<Currency> currencies)
         {
-            var cnbRates = GetSourceExchangeRates(currencies);
+            var cnbRates = GetSourceExchangeRates();
             var filteredRates = GetFilteredRates(cnbRates, currencies);
             return filteredRates;
         }
 
-        private IEnumerable<ExchangeRate> GetSourceExchangeRates(IEnumerable<Currency> currencies)
+        private IEnumerable<ExchangeRate> GetSourceExchangeRates()
         {
             // Public API stays synchronous per assignment; the source uses async HTTP.
-            var task = _exchangeRateSource.GetExchangeRates(currencies);
+            var task = _exchangeRateSource.GetExchangeRates();
             return task.ConfigureAwait(false).GetAwaiter().GetResult();
         }
 

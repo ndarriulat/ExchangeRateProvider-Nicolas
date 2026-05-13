@@ -83,7 +83,7 @@ public class ExchangeRateProviderFilteringTests
             _rates = rates.ToList();
         }
 
-        public Task<IEnumerable<ExchangeRate>> GetExchangeRates(IEnumerable<Currency> currencies)
+        public Task<IEnumerable<ExchangeRate>> GetExchangeRates()
         {
             return Task.FromResult<IEnumerable<ExchangeRate>>(_rates);
         }

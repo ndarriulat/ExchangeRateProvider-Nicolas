@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace ExchangeRateUpdater
@@ -14,33 +14,60 @@ namespace ExchangeRateUpdater
 
         private readonly HttpClient _httpClient;
         private readonly IOptions<CnbOptions> _options;
+        private readonly ILogger<CnbExchangeRateSource> _logger;
 
-        public CnbExchangeRateSource(HttpClient httpClient, IOptions<CnbOptions> options)
+        public CnbExchangeRateSource(
+            HttpClient httpClient,
+            IOptions<CnbOptions> options,
+            ILogger<CnbExchangeRateSource> logger)
         {
             _httpClient = httpClient;
             _options = options;
+            _logger = logger;
         }
 
-        public async Task<IEnumerable<ExchangeRate>> GetExchangeRates(IEnumerable<Currency> currencies)
+        public async Task<IEnumerable<ExchangeRate>> GetExchangeRates()
         {
-            _ = currencies;
-            var response = await _httpClient.GetAsync(_options.Value.DailyKurzUrl).ConfigureAwait(false);
+            var dailyKurzUrl = _options.Value.DailyKurzUrl;
+            _logger.LogDebug("Fetching CNB exchange rates from {Url}.", dailyKurzUrl);
+
+            var response = await _httpClient.GetAsync(dailyKurzUrl).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "CNB exchange-rate request failed with status code {StatusCode}.",
+                    response.StatusCode);
+            }
+
             response.EnsureSuccessStatusCode();
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            return ParseCnbDailyKurz(content).ToList();
+            var rates = ParseCnbDailyKurz(content, out var skippedRowCount);
+
+            if (skippedRowCount > 0)
+            {
+                _logger.LogWarning(
+                    "Skipped {SkippedRowCount} malformed CNB exchange-rate rows.",
+                    skippedRowCount);
+            }
+
+            _logger.LogInformation("Parsed {RateCount} CNB exchange rates.", rates.Count);
+            return rates;
         }
 
-        private static IEnumerable<ExchangeRate> ParseCnbDailyKurz(string content)
+        private static IReadOnlyList<ExchangeRate> ParseCnbDailyKurz(string content, out int skippedRowCount)
         {
+            skippedRowCount = 0;
+            var rates = new List<ExchangeRate>();
+
             if (string.IsNullOrWhiteSpace(content))
             {
-                yield break;
+                return rates;
             }
 
             var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             if (lines.Length <= CnbHeaderLineCount)
             {
-                yield break;
+                return rates;
             }
 
             for (var i = CnbHeaderLineCount; i < lines.Length; i++)
@@ -54,6 +81,7 @@ namespace ExchangeRateUpdater
                 var parts = line.Split('|');
                 if (parts.Length < 5)
                 {
+                    skippedRowCount++;
                     continue;
                 }
 
@@ -63,23 +91,28 @@ namespace ExchangeRateUpdater
 
                 if (string.IsNullOrEmpty(code))
                 {
+                    skippedRowCount++;
                     continue;
                 }
 
                 if (!decimal.TryParse(amountText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var amount)
                     || amount <= 0)
                 {
+                    skippedRowCount++;
                     continue;
                 }
 
                 if (!TryParseCnbDecimal(rateText, out var rate))
                 {
+                    skippedRowCount++;
                     continue;
                 }
 
                 var value = rate / amount;
-                yield return new ExchangeRate(new Currency(code), new Currency("CZK"), value);
+                rates.Add(new ExchangeRate(new Currency(code), new Currency("CZK"), value));
             }
+
+            return rates;
         }
 
         private static bool TryParseCnbDecimal(string text, out decimal value)

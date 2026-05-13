@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using ExchangeRateUpdater;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -97,9 +98,9 @@ public class CnbExchangeRateSourceIntegrationTests
         using var handler = new StubHttpMessageHandler(HttpStatusCode.OK, httpBody);
         using var httpClient = new HttpClient(handler);
         var options = Options.Create(new CnbOptions { DailyKurzUrl = TestUrl });
-        var source = new CnbExchangeRateSource(httpClient, options);
+        var source = new CnbExchangeRateSource(httpClient, options, NullLogger<CnbExchangeRateSource>.Instance);
 
-        var rates = (await source.GetExchangeRates(new[] { new Currency("USD") })).ToList();
+        var rates = (await source.GetExchangeRates()).ToList();
 
         Assert.Equal(expected.Length, rates.Count);
         foreach (var exp in expected)
@@ -118,10 +119,10 @@ public class CnbExchangeRateSourceIntegrationTests
         using var handler = new StubHttpMessageHandler(HttpStatusCode.NotFound, body: "");
         using var httpClient = new HttpClient(handler);
         var options = Options.Create(new CnbOptions { DailyKurzUrl = TestUrl });
-        var source = new CnbExchangeRateSource(httpClient, options);
+        var source = new CnbExchangeRateSource(httpClient, options, NullLogger<CnbExchangeRateSource>.Instance);
 
         await Assert.ThrowsAsync<HttpRequestException>(
-            () => source.GetExchangeRates(Enumerable.Empty<Currency>()));
+            () => source.GetExchangeRates());
     }
 
     private sealed class StubHttpMessageHandler : HttpMessageHandler
