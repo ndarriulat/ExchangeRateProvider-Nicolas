@@ -2,29 +2,6 @@
 
 This file records lightweight technical decisions made during this task.
 
-## Project docs and AI collaboration defaults
-
-### Context
-
-We want consistent planning and decision history, and a predictable way to collaborate with AI assistants (step-by-step discussion, no silent architectural choices).
-
-| Decision | Why this choice | Consequences |
-| --- | --- | --- |
-| Keep the versioned implementation plan in [`PLAN.md`](PLAN.md) under `jobs/Backend` and update it when the plan changes. | `PLAN.md` is reviewable in git and independent of IDE-generated plan files. | When scope or design shifts, edit `PLAN.md`. Optional Cursor plans under `.cursor/plans/` may still exist; treat `PLAN.md` as authoritative unless the team agrees otherwise. |
-| Record substantive technical choices in [`DECISIONS.md`](DECISIONS.md). | `DECISIONS.md` stays the single place for why we chose a given approach. | Add a short entry here when a shift reflects a real decision, such as libraries, new types, or major tradeoffs. |
-| Encode collaboration preferences in [`.cursor/rules/collaboration-and-docs.mdc`](../../.cursor/rules/collaboration-and-docs.mdc). | Cursor rules give stable defaults for future sessions without repeating instructions. | Future AI sessions should work step by step and avoid silent architectural choices. |
-
-## No root `AGENTS.md` (for now)
-
-### Context
-
-We considered adding a root-level `AGENTS.md` for discoverability and cross-tool conventions, versus relying only on Cursor project rules and backend docs.
-
-| Decision | Why this choice | Consequences |
-| --- | --- | --- |
-| Do not add a repository root `AGENTS.md` at this stage. | Avoids duplication and drift between `AGENTS.md` and `.cursor/rules` if both repeated the same instructions. | Anyone looking for agent collaboration guidance should open `.cursor/rules/` and the backend `PLAN.md` / `DECISIONS.md` files. |
-| Treat [`.cursor/rules/collaboration-and-docs.mdc`](../../.cursor/rules/collaboration-and-docs.mdc), [`PLAN.md`](PLAN.md), and this [`DECISIONS.md`](DECISIONS.md) as authoritative. | Cursor's primary hook for persistent guidance is `.cursor/rules/`; a second root file does not add much for Cursor-only workflows on a small repo. | If we add `AGENTS.md` later, keep it as a short index of links unless we explicitly deprecate overlap with `.cursor/rules`. |
-
 ## CNB daily rates URL in `appsettings.json` and HTTP via `IHttpClientFactory`
 
 ### Context
@@ -33,7 +10,7 @@ We considered adding a root-level `AGENTS.md` for discoverability and cross-tool
 
 | Decision | Why this choice | Consequences |
 | --- | --- | --- |
-| Store the CNB daily kurz URL in [`Task/appsettings.json`](Task/appsettings.json), read through `IConfiguration`. | Separates environment-specific or future URL changes from compiled logic and matches common .NET hosting patterns. | The console app composition root ([`Task/Program.cs`](Task/Program.cs)) should build configuration and bind/pass settings into `CnbExchangeRateSource`. |
+| Store the CNB daily kurz URL in [`Task/appsettings.json`](../Task/appsettings.json), read through `IConfiguration`. | Separates environment-specific or future URL changes from compiled logic and matches common .NET hosting patterns. | The console app composition root ([`Task/Program.cs`](../Task/Program.cs)) should build configuration and bind/pass settings into `CnbExchangeRateSource`. |
 | Use `IHttpClientFactory` via `AddHttpClient` to obtain `HttpClient` instances. | This is the recommended default for production-style .NET apps and addresses lifetime concerns that a per-call `new HttpClient()` does not. | Additional NuGet packages are expected for configuration and HTTP client extensions, such as `Microsoft.Extensions.Configuration.Json`, `Microsoft.Extensions.Http`, and hosting/DI primitives as needed. |
 
 ## Generic host for console bootstrap (`Host.CreateApplicationBuilder`)
@@ -44,7 +21,7 @@ The Task executable needs JSON configuration (e.g. CNB URL), options binding (`C
 
 | Decision | Why this choice | Consequences |
 | --- | --- | --- |
-| Bootstrap the console app with `Host.CreateApplicationBuilder(args)`. | It gives one conventional pipeline for default `appsettings` loading, environment-specific files, configuration, and DI. | Add `Microsoft.Extensions.Hosting` and `Microsoft.Extensions.Http` to the Task project; implement [`Task/Program.cs`](Task/Program.cs) around the host builder instead of only `new`ing types in `Main`. |
+| Bootstrap the console app with `Host.CreateApplicationBuilder(args)`. | It gives one conventional pipeline for default `appsettings` loading, environment-specific files, configuration, and DI. | Add `Microsoft.Extensions.Hosting` and `Microsoft.Extensions.Http` to the Task project; implement [`Task/Program.cs`](../Task/Program.cs) around the host builder instead of only `new`ing types in `Main`. |
 | Use `builder.Configuration` and `builder.Services` for options, HTTP clients, and DI registrations, then `Build()` and resolve services. | This uses less boilerplate than assembling `ConfigurationBuilder`, `Build()`, and `ServiceCollection` by hand for the same features. | `Configure<CnbOptions>(builder.Configuration.GetSection(...))` and related registrations live next to other `builder.Services` calls in the composition root. |
 | Do not use only a manual `ServiceCollection` + `ConfigurationBuilder` stack for this task. | The manual stack is valid when minimizing dependencies or when another host already owns configuration/DI, but that is not needed here. | The project follows the generic-host style consistently. |
 
@@ -52,13 +29,13 @@ The Task executable needs JSON configuration (e.g. CNB URL), options binding (`C
 
 ### Context
 
-It is tempting to add a small project-local interface (e.g. a non-generic `IOptions` with `DailyKurzUrl`) to abstract configuration for [`CnbExchangeRateSource`](Task/CnbExchangeRateSource.cs).
+It is tempting to add a small project-local interface (e.g. a non-generic `IOptions` with `DailyKurzUrl`) to abstract configuration for [`CnbExchangeRateSource`](../Task/CnbExchangeRateSource.cs).
 
 | Decision | Why this choice | Consequences |
 | --- | --- | --- |
-| Do not introduce a custom `IOptions` or similarly named interface in the Task project. | `IOptions` and `IOptions<T>` are standard .NET names; a local `IOptions` type would collide conceptually and confuse readers, docs, and `using` resolution. | [`CnbExchangeRateSource`](Task/CnbExchangeRateSource.cs) should not take a hand-rolled options interface. |
-| Inject `IOptions<CnbOptions>` from `Microsoft.Extensions.Options`, bind settings with `Configure<CnbOptions>(...)`, and read the URL via `options.Value`. | `Configure<CnbOptions>` is already the chosen wiring, and `IOptions<CnbOptions>` is the intended consumer API for that binding. | [`CnbExchangeRateSource`](Task/CnbExchangeRateSource.cs) should take `IOptions<CnbOptions>` plus `HttpClient` from `IHttpClientFactory`. |
-| If extra indirection is needed later, use a distinct custom name such as `ICnbSettings`. | A distinct name avoids overlap with the standard `IOptions<T>` pattern. | Remove or avoid any obsolete `IOptions.cs` in [`Task`](Task) that duplicates this role. |
+| Do not introduce a custom `IOptions` or similarly named interface in the Task project. | `IOptions` and `IOptions<T>` are standard .NET names; a local `IOptions` type would collide conceptually and confuse readers, docs, and `using` resolution. | [`CnbExchangeRateSource`](../Task/CnbExchangeRateSource.cs) should not take a hand-rolled options interface. |
+| Inject `IOptions<CnbOptions>` from `Microsoft.Extensions.Options`, bind settings with `Configure<CnbOptions>(...)`, and read the URL via `options.Value`. | `Configure<CnbOptions>` is already the chosen wiring, and `IOptions<CnbOptions>` is the intended consumer API for that binding. | [`CnbExchangeRateSource`](../Task/CnbExchangeRateSource.cs) should take `IOptions<CnbOptions>` plus `HttpClient` from `IHttpClientFactory`. |
+| If extra indirection is needed later, use a distinct custom name such as `ICnbSettings`. | A distinct name avoids overlap with the standard `IOptions<T>` pattern. | Remove or avoid any obsolete `IOptions.cs` in [`Task`](../Task) that duplicates this role. |
 
 ## Composition root in `Program.cs` (no default `ExchangeRateProvider` ctor)
 
@@ -69,7 +46,7 @@ It is tempting to add a small project-local interface (e.g. a non-generic `IOpti
 | Decision | Why this choice | Consequences |
 | --- | --- | --- |
 | Do not add a parameterless `ExchangeRateProvider()` that internally `new`s a concrete source. | Dependencies stay visible at the application entry point, and `ExchangeRateProvider` avoids hard-coding a single concrete source implementation. | Every runnable entry point must create or receive an `IExchangeRateSource` before constructing `ExchangeRateProvider`. |
-| Treat [`Program.cs`](Task/Program.cs) as the composition root. | This aligns with explicit DI-style composition without pulling in a full container for this small task. | Unit tests continue to inject fakes via the same constructor; no convenience ctor is required for production. |
+| Treat [`Program.cs`](../Task/Program.cs) as the composition root. | This aligns with explicit DI-style composition without pulling in a full container for this small task. | Unit tests continue to inject fakes via the same constructor; no convenience ctor is required for production. |
 | Do not use a parameterless constructor that delegates to `new CnbExchangeRateSource()`. | That shortcut would reduce lines in `Program`, but it hides the dependency and couples the provider to one default implementation. | The provider remains source-agnostic and easier to test. |
 
 ## CNB source owns CNB-specific parsing
@@ -135,3 +112,25 @@ The CNB source calls an external HTTP endpoint. Without an explicit timeout, a s
 | --- | --- | --- |
 | Configure the typed CNB `HttpClient` with a 10-second timeout in `Program.cs`. | The application should fail predictably when the external dependency stalls instead of hanging indefinitely. Ten seconds is conservative for a small one-shot fetch while still leaving room for normal network variance. | Slow CNB/network responses can surface as timeout failures. A future production service could make this timeout configurable and pair it with a deliberate retry/resilience policy. |
 
+## Project docs and AI collaboration defaults
+
+### Context
+
+We want consistent planning and decision history, and a predictable way to collaborate with AI assistants (step-by-step discussion, no silent architectural choices).
+
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Keep the versioned implementation plan in [`PLAN.md`](PLAN.md) under `jobs/Backend/docs` and update it when the plan changes. | `PLAN.md` is reviewable in git and independent of IDE-generated plan files. | When scope or design shifts, edit `PLAN.md`. Optional Cursor plans under `.cursor/plans/` may still exist; treat `PLAN.md` as authoritative unless the team agrees otherwise. |
+| Record substantive technical choices in [`DECISIONS.md`](DECISIONS.md). | `DECISIONS.md` stays the single place for why we chose a given approach. | Add a short entry here when a shift reflects a real decision, such as libraries, new types, or major tradeoffs. |
+| Encode collaboration preferences in [`.cursor/rules/collaboration-and-docs.mdc`](../../../.cursor/rules/collaboration-and-docs.mdc). | Cursor rules give stable defaults for future sessions without repeating instructions. | Future AI sessions should work step by step and avoid silent architectural choices. |
+
+## No root `AGENTS.md` (for now)
+
+### Context
+
+We considered adding a root-level `AGENTS.md` for discoverability and cross-tool conventions, versus relying only on Cursor project rules and backend docs.
+
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Do not add a repository root `AGENTS.md` at this stage. | Avoids duplication and drift between `AGENTS.md` and `.cursor/rules` if both repeated the same instructions. | Anyone looking for agent collaboration guidance should open `.cursor/rules/` and the backend `docs/PLAN.md` / `docs/DECISIONS.md` files. |
+| Treat [`.cursor/rules/collaboration-and-docs.mdc`](../../../.cursor/rules/collaboration-and-docs.mdc), [`PLAN.md`](PLAN.md), and this [`DECISIONS.md`](DECISIONS.md) as authoritative. | Cursor's primary hook for persistent guidance is `.cursor/rules/`; a second root file does not add much for Cursor-only workflows on a small repo. | If we add `AGENTS.md` later, keep it as a short index of links unless we explicitly deprecate overlap with `.cursor/rules`. |

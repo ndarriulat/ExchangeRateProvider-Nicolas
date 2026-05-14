@@ -12,20 +12,20 @@ CNB publishes rates as foreign currency against CZK. For example, requesting `US
 
 1. [`DotNet.md`](DotNet.md) - the original .NET assignment.
 2. [`SOLUTION.md`](SOLUTION.md) - this guide and local setup instructions.
-3. [`PLAN.md`](PLAN.md) - the implementation plan and high-level flow.
-4. [`DECISIONS.md`](DECISIONS.md) - the engineering decisions and tradeoffs.
-5. [`../../Tests cases.md`](../../Tests%20cases.md) - the documented test matrix.
+3. [`docs/PLAN.md`](docs/PLAN.md) - the implementation plan and high-level flow.
+4. [`docs/DECISIONS.md`](docs/DECISIONS.md) - the engineering decisions and tradeoffs.
+5. [`docs/TEST_CASES.md`](docs/TEST_CASES.md) - the documented test matrix.
 
 ## Document Map
 
 | Document | Purpose |
 | --- | --- |
 | [`Readme.md`](Readme.md) | Backend task index that links to the available backend exercises. |
-| [`DotNet.md`](DotNet.md) | Original task description for the .NET implementation. |
-| [`PLAN.md`](PLAN.md) | Current implementation plan, flow, checklist, and scope notes. |
-| [`DECISIONS.md`](DECISIONS.md) | Decision log explaining the main design choices and consequences. |
-| [`../../Tests cases.md`](../../Tests%20cases.md) | Test coverage matrix for provider, filtering, and CNB source behavior. |
 | [`SOLUTION.md`](SOLUTION.md) | Reader-oriented guide for this implementation and local commands. |
+| [`DotNet.md`](DotNet.md) | Original task description for the .NET implementation. |
+| [`docs/PLAN.md`](docs/PLAN.md) | Current implementation plan, flow, checklist, and scope notes. |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Decision log explaining the main design choices and consequences. |
+| [`docs/TEST_CASES.md`](docs/TEST_CASES.md) | Test coverage matrix for provider, filtering, and CNB source behavior. |
 
 ## Code Structure
 
@@ -75,4 +75,4 @@ The tests use xUnit. Provider tests use fake `IExchangeRateSource` implementatio
 
 ## Production Notes
 
-The main production-oriented choices are documented in [`DECISIONS.md`](DECISIONS.md): `HttpClient` creation through `IHttpClientFactory`, configuration through `appsettings.json` and options binding, source-specific parsing inside `CnbExchangeRateSource`, and a deliberate sync-over-async boundary to preserve the assignment-facing provider API.
+The main production-oriented choices are documented in [`docs/DECISIONS.md`](docs/DECISIONS.md): `HttpClient` creation through `IHttpClientFactory`, configuration through `appsettings.json` and options binding, source-specific parsing inside `CnbExchangeRateSource`, and a deliberate sync-over-async boundary to preserve the assignment-facing provider API.

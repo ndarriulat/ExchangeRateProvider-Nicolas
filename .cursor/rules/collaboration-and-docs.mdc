@@ -14,8 +14,8 @@ alwaysApply: true
 
 ## Where documentation lives
 
-- **Task / implementation plan:** The versioned plan for this backend task is [`jobs/Backend/PLAN.md`](jobs/Backend/PLAN.md). When the plan changes, **update that file** so it stays the single source of truth in the repo.
-- **Engineering decisions:** Record substantive choices (libraries, patterns, whether to add a type or folder, sync vs async, etc.) in [`jobs/Backend/DECISIONS.md`](jobs/Backend/DECISIONS.md), using the same lightweight sections as existing entries (Context / Decision / Why / Consequences).
-- **Test case matrix:** When adding, renaming, removing, or materially changing a test method, update [`Tests cases.md`](Tests%20cases.md) so the documented test matrices stay aligned with the test suite.
+- **Task / implementation plan:** The versioned plan for this backend task is [`jobs/Backend/docs/PLAN.md`](jobs/Backend/docs/PLAN.md). When the plan changes, **update that file** so it stays the single source of truth in the repo.
+- **Engineering decisions:** Record substantive choices (libraries, patterns, whether to add a type or folder, sync vs async, etc.) in [`jobs/Backend/docs/DECISIONS.md`](jobs/Backend/docs/DECISIONS.md), using the same lightweight sections as existing entries (Context / Decision / Why / Consequences).
+- **Test case matrix:** When adding, renaming, removing, or materially changing a test method, update [`jobs/Backend/docs/TEST_CASES.md`](jobs/Backend/docs/TEST_CASES.md) so the documented test matrices stay aligned with the test suite.
 
 Cursor may also store a generated plan under `.cursor/plans/`; treat **`PLAN.md` in the repo** as the authoritative plan for git and reviews unless the user says otherwise.
