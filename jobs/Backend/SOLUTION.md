@@ -47,7 +47,7 @@ CNB publishes rates as foreign currency against CZK. For example, requesting `US
 
 Required tooling:
 
-- .NET SDK 9.0 or newer, because both projects target `net9.0`.
+- .NET SDK 10.0 or newer, because both projects target `net10.0`.
 - Internet access for the first NuGet restore and for running the console app against the live CNB endpoint.
 
 From the repository root:

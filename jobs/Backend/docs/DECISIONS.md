@@ -112,6 +112,17 @@ The CNB source calls an external HTTP endpoint. Without an explicit timeout, a s
 | --- | --- | --- |
 | Configure the typed CNB `HttpClient` with a 10-second timeout in `Program.cs`. | The application should fail predictably when the external dependency stalls instead of hanging indefinitely. Ten seconds is conservative for a small one-shot fetch while still leaving room for normal network variance. | Slow CNB/network responses can surface as timeout failures. A future production service could make this timeout configurable and pair it with a deliberate retry/resilience policy. |
 
+## Target .NET 10 LTS
+
+### Context
+
+The backend task should look like something we would maintain long term. The projects previously targeted .NET 9, which was a short-term support release.
+
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Target `net10.0` for both the console app and test project. | .NET 10 is the current LTS line, so it is a better match for the task's production-maintenance framing than .NET 9 STS. | Local and reviewer machines need the .NET 10 SDK installed to restore, build, and test. |
+| Align `Microsoft.Extensions.Hosting` and `Microsoft.Extensions.Http` package references to `10.0.0`. | Keeping extension packages on the same major version as the target framework avoids unnecessary version skew. | Package restore now depends on the 10.x Microsoft.Extensions package line. |
+
 ## Project docs and AI collaboration defaults
 
 ### Context
