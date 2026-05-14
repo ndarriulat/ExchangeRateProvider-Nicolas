@@ -102,15 +102,18 @@ CNB publishes rates as foreign currency against CZK, so `CZK` is implicit in eac
 | Keep the requested `Currency` collection on `ExchangeRateProvider.GetExchangeRates(...)`, where filtering happens. | `ExchangeRateProvider` remains the single place that applies the assignment's requested-currency filtering rules. Avoids an unused parameter in `CnbExchangeRateSource` and fake source implementations. | If a future source needs request-aware fetching for performance, revisit the source contract deliberately. |
 | Treat requested currencies as requested source currencies; `USD` is enough to return the source-provided `USD/CZK` rate. | This matches CNB's real data format and avoids requiring callers to pass `CZK` redundantly when every CNB rate is already against CZK. | This assumes the source's target currency is implicit. If a future source supports multiple target currencies, revisit the provider API, for example with `sourceCurrencies + targetCurrency` or explicit currency pairs. |
 
-## Bound CNB HTTP request duration
+## Configure CNB HTTP resilience
 
 ### Context
 
-The CNB source calls an external HTTP endpoint. Without an explicit timeout, a stalled network call can keep the console executable waiting longer than is useful for this task.
+The CNB source calls an external HTTP endpoint. In production-style code, a stalled or transiently failing network call should be bounded and retried deliberately instead of relying on one fixed `HttpClient.Timeout` value.
 
 | Decision | Why this choice | Consequences |
 | --- | --- | --- |
-| Configure the typed CNB `HttpClient` with a 10-second timeout in `Program.cs`. | The application should fail predictably when the external dependency stalls instead of hanging indefinitely. Ten seconds is conservative for a small one-shot fetch while still leaving room for normal network variance. | Slow CNB/network responses can surface as timeout failures. A future production service could make this timeout configurable and pair it with a deliberate retry/resilience policy. |
+| Store CNB resilience settings in [`Task/appsettings.json`](../Task/appsettings.json): total timeout, per-attempt timeout, retry count, and retry delay. | These values are operational knobs, not parsing or domain logic. Keeping them in configuration lets environments tune CNB behavior without code changes. | [`Task/CnbOptions.cs`](../Task/CnbOptions.cs) now carries both the CNB URL and resilience settings. |
+| Validate the CNB URL and resilience settings in [`Task/Program.cs`](../Task/Program.cs) before registering the HTTP client. | A missing URL or invalid timeout should fail with a clear configuration error instead of becoming a late HTTP or resilience-pipeline failure. | The console app reports configuration mistakes at startup through the existing top-level error handling. |
+| Use `Microsoft.Extensions.Http.Resilience` with `AddStandardResilienceHandler` on the typed CNB `HttpClient`. | Retries and timeouts belong at the HTTP boundary. The standard handler provides a production-ready pipeline for retries, attempt timeout, total timeout, and jittered exponential backoff without a hand-written retry loop. | [`Task/Program.cs`](../Task/Program.cs) configures the resilience policy; [`Task/CnbExchangeRateSource.cs`](../Task/CnbExchangeRateSource.cs) remains focused on fetching through `HttpClient` and parsing CNB text. |
+| Set `HttpClient.Timeout` to `Timeout.InfiniteTimeSpan` and let the resilience pipeline own request timing. | Stacking `HttpClient.Timeout` on top of resilience timeouts can produce competing cancellation behavior and harder-to-explain failures. | Timeout failures are controlled by the configured attempt and total request timeouts. |
 
 ## Target .NET 10 LTS
 
@@ -121,7 +124,8 @@ The backend task should look like something we would maintain long term. The pro
 | Decision | Why this choice | Consequences |
 | --- | --- | --- |
 | Target `net10.0` for both the console app and test project. | .NET 10 is the current LTS line, so it is a better match for the task's production-maintenance framing than .NET 9 STS. | Local and reviewer machines need the .NET 10 SDK installed to restore, build, and test. |
-| Align `Microsoft.Extensions.Hosting` and `Microsoft.Extensions.Http` package references to `10.0.0`. | Keeping extension packages on the same major version as the target framework avoids unnecessary version skew. | Package restore now depends on the 10.x Microsoft.Extensions package line. |
+| Align `Microsoft.Extensions.Hosting` and `Microsoft.Extensions.Http` package references to the latest stable 10.x packages selected by NuGet. | Keeping extension packages on the same major version as the target framework avoids unnecessary version skew. | Package restore now depends on the 10.x Microsoft.Extensions package line. |
+| Add `Microsoft.Extensions.Http.Resilience` for the CNB HTTP policy. | This is the standard .NET HTTP resilience package and avoids maintaining custom retry code. | Restore also brings the related Microsoft resilience and diagnostics packages. |
 
 ## Project docs and AI collaboration defaults
 

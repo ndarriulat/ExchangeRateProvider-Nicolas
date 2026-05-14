@@ -62,14 +62,14 @@ flowchart LR
 
 ## Wiring and tests
 
-- **Composition:** [`Task/Program.cs`](../Task/Program.cs) is the composition root. It wires the real `IExchangeRateSource` implementation and passes it to `ExchangeRateProvider` via DI or explicit construction.
+- **Composition:** [`Task/Program.cs`](../Task/Program.cs) is the composition root. It wires the real `IExchangeRateSource` implementation, binds and validates CNB options from configuration, applies the typed `HttpClient` resilience policy, and passes the source to `ExchangeRateProvider` via DI.
 - **Tests:**
   - [`Task.Tests/ExchangeRateProviderTests.cs`](../Task.Tests/ExchangeRateProviderTests.cs): pass a fake `IExchangeRateSource`; assert empty vs non-empty using canned `ExchangeRate` instances.
   - [`Task.Tests/ExchangeRateProviderFilteringTests.cs`](../Task.Tests/ExchangeRateProviderFilteringTests.cs): invoke `GetFilteredRates` through reflection with an `ExchangeRateProvider` constructed from a dummy fake source.
   - [`Task.Tests/CnbExchangeRateSourceIntegrationTests.cs`](../Task.Tests/CnbExchangeRateSourceIntegrationTests.cs): use stubbed HTTP responses to cover CNB document parsing and HTTP failures.
 
-## Future production hardening
+## Production hardening
 
-- **Retries:** Consider adding a conservative retry policy for transient CNB HTTP failures only (timeouts, `408`, `429`, and `5xx` responses). Avoid retrying permanent client/configuration failures such as `400`, `401`, `403`, or `404`. If we implement this, prefer the .NET HTTP resilience extensions over a hand-rolled retry loop and document the package/policy choice in [`DECISIONS.md`](DECISIONS.md).
+- **Retries and timeouts:** CNB HTTP calls use the .NET HTTP resilience extensions with configurable total timeout, per-attempt timeout, retry count, retry delay, exponential backoff, and jitter. The source class stays focused on fetching and parsing; the HTTP policy lives in the composition root.
 - **Freshness:** CNB daily-rate files include a publication date in the header. A future iteration could parse that date, log it with the parsed rates, expose it alongside the returned data if the public model evolves, and warn when the document appears unexpectedly stale. Any staleness threshold should account for weekends and bank holidays.
 
