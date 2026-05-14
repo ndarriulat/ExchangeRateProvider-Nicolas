@@ -125,3 +125,13 @@ CNB publishes rates as foreign currency against CZK, so `CZK` is implicit in eac
 | Keep the requested `Currency` collection on `ExchangeRateProvider.GetExchangeRates(...)`, where filtering happens. | `ExchangeRateProvider` remains the single place that applies the assignment's requested-currency filtering rules. Avoids an unused parameter in `CnbExchangeRateSource` and fake source implementations. | If a future source needs request-aware fetching for performance, revisit the source contract deliberately. |
 | Treat requested currencies as requested source currencies; `USD` is enough to return the source-provided `USD/CZK` rate. | This matches CNB's real data format and avoids requiring callers to pass `CZK` redundantly when every CNB rate is already against CZK. | This assumes the source's target currency is implicit. If a future source supports multiple target currencies, revisit the provider API, for example with `sourceCurrencies + targetCurrency` or explicit currency pairs. |
 
+## Bound CNB HTTP request duration
+
+### Context
+
+The CNB source calls an external HTTP endpoint. Without an explicit timeout, a stalled network call can keep the console executable waiting longer than is useful for this task.
+
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Configure the typed CNB `HttpClient` with a 10-second timeout in `Program.cs`. | The application should fail predictably when the external dependency stalls instead of hanging indefinitely. Ten seconds is conservative for a small one-shot fetch while still leaving room for normal network variance. | Slow CNB/network responses can surface as timeout failures. A future production service could make this timeout configurable and pair it with a deliberate retry/resilience policy. |
+

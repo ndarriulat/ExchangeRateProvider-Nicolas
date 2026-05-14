@@ -58,7 +58,13 @@ flowchart LR
 - [x] Filter by requested source currencies using `Currency` equality; wire `GetExchangeRates` end-to-end
 - [x] Update `Program` composition to wire source into provider
 - [x] Adjust provider/filtering tests to use fake or dummy sources; keep source tests for HTTP parsing
+- [x] Set a bounded timeout on the CNB `HttpClient` registration so the executable does not hang indefinitely on network stalls
 
 ## Resolved choice
 
 - **Sync vs async:** Keep the public `GetExchangeRates` API synchronous for this assignment and use a deliberate sync-over-async boundary when calling the async `IExchangeRateSource`. This choice is documented in [`DECISIONS.md`](DECISIONS.md).
+
+## Future production hardening
+
+- **Retries:** Consider adding a conservative retry policy for transient CNB HTTP failures only (timeouts, `408`, `429`, and `5xx` responses). Avoid retrying permanent client/configuration failures such as `400`, `401`, `403`, or `404`. If implemented, prefer the .NET HTTP resilience extensions over a hand-rolled retry loop and document the package/policy choice in [`DECISIONS.md`](DECISIONS.md).
+- **Freshness:** CNB daily-rate files include a publication date in the header. A future iteration could parse that date, log it with the parsed rates, expose it alongside the returned data if the public model evolves, and warn when the document appears unexpectedly stale. Any staleness threshold should account for weekends and bank holidays.

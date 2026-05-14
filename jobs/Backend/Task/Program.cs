@@ -29,7 +29,10 @@ namespace ExchangeRateUpdater
 
                 builder.Services.Configure<CnbOptions>(
                     builder.Configuration.GetSection(CnbOptions.SectionName)); 
-                builder.Services.AddHttpClient<IExchangeRateSource, CnbExchangeRateSource>();
+                builder.Services.AddHttpClient<IExchangeRateSource, CnbExchangeRateSource>(client =>
+                {
+                    client.Timeout = TimeSpan.FromSeconds(10);
+                });
                 builder.Services.AddTransient<ExchangeRateProvider>();
                 using var host = builder.Build();
                 var exchangeRateProvider = host.Services.GetRequiredService<ExchangeRateProvider>();
