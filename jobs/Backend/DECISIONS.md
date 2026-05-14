@@ -8,22 +8,11 @@ This file records lightweight technical decisions made during this task.
 
 We want consistent planning and decision history, and a predictable way to collaborate with AI assistants (step-by-step discussion, no silent architectural choices).
 
-### Decision
-
-- Keep the **versioned implementation plan** in `[PLAN.md](PLAN.md)` under `jobs/Backend` and update it when the plan changes.
-- Record **substantive technical choices** (libraries, new types, major tradeoffs) in this file, `[DECISIONS.md](DECISIONS.md)`.
-- Encode collaboration preferences for this repo in `[.cursor/rules/collaboration-and-docs.mdc](../../.cursor/rules/collaboration-and-docs.mdc)` (`alwaysApply: true`): one step at a time; do not decide libraries or structure without explicit maintainer agreement.
-
-### Why this choice
-
-- `PLAN.md` is reviewable in git and independent of IDE-generated plan files.
-- `DECISIONS.md` stays the single place for “why we chose X.”
-- Cursor rules give stable defaults for future sessions without repeating instructions.
-
-### Consequences
-
-- When scope or design shifts, edit `PLAN.md` and add a short entry here if the shift reflects a real decision.
-- Optional Cursor plans under `.cursor/plans/` may still exist; treat `PLAN.md` as authoritative unless the team agrees otherwise.
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Keep the versioned implementation plan in [`PLAN.md`](PLAN.md) under `jobs/Backend` and update it when the plan changes. | `PLAN.md` is reviewable in git and independent of IDE-generated plan files. | When scope or design shifts, edit `PLAN.md`. Optional Cursor plans under `.cursor/plans/` may still exist; treat `PLAN.md` as authoritative unless the team agrees otherwise. |
+| Record substantive technical choices in [`DECISIONS.md`](DECISIONS.md). | `DECISIONS.md` stays the single place for why we chose a given approach. | Add a short entry here when a shift reflects a real decision, such as libraries, new types, or major tradeoffs. |
+| Encode collaboration preferences in [`.cursor/rules/collaboration-and-docs.mdc`](../../.cursor/rules/collaboration-and-docs.mdc). | Cursor rules give stable defaults for future sessions without repeating instructions. | Future AI sessions should work step by step and avoid silent architectural choices. |
 
 ## No root `AGENTS.md` (for now)
 
@@ -31,21 +20,10 @@ We want consistent planning and decision history, and a predictable way to colla
 
 We considered adding a root-level `AGENTS.md` for discoverability and cross-tool conventions, versus relying only on Cursor project rules and backend docs.
 
-### Decision
-
-- **Do not add** a repository root `AGENTS.md` at this stage.
-- Treat `**[.cursor/rules/collaboration-and-docs.mdc](../../.cursor/rules/collaboration-and-docs.mdc)`**, `**[PLAN.md](PLAN.md)**`, and this `**[DECISIONS.md](DECISIONS.md)**` as the authoritative places for agent/collaboration defaults and task planning.
-
-### Why this choice
-
-- **Avoid duplication and drift** between `AGENTS.md` and `.cursor/rules` if both repeated the same instructions.
-- **Cursor’s primary hook** for persistent guidance is `.cursor/rules/`; a second root file does not add much for Cursor-only workflows on a small repo.
-- **Optional later:** a **thin** root `AGENTS.md` that only **links** to the files above is still valid if we want better visibility for people or tools that expect that filename—without copying rule text.
-
-### Consequences
-
-- Anyone looking for “how agents should work here” should open `.cursor/rules/` and `jobs/Backend/PLAN.md` / `DECISIONS.md`.
-- If we add `AGENTS.md` later, keep it as a short index (links only) unless we explicitly deprecate overlap with `.cursor/rules`.
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Do not add a repository root `AGENTS.md` at this stage. | Avoids duplication and drift between `AGENTS.md` and `.cursor/rules` if both repeated the same instructions. | Anyone looking for agent collaboration guidance should open `.cursor/rules/` and the backend `PLAN.md` / `DECISIONS.md` files. |
+| Treat [`.cursor/rules/collaboration-and-docs.mdc`](../../.cursor/rules/collaboration-and-docs.mdc), [`PLAN.md`](PLAN.md), and this [`DECISIONS.md`](DECISIONS.md) as authoritative. | Cursor's primary hook for persistent guidance is `.cursor/rules/`; a second root file does not add much for Cursor-only workflows on a small repo. | If we add `AGENTS.md` later, keep it as a short index of links unless we explicitly deprecate overlap with `.cursor/rules`. |
 
 ## CNB daily rates URL in `appsettings.json` and HTTP via `IHttpClientFactory`
 
@@ -53,20 +31,10 @@ We considered adding a root-level `AGENTS.md` for discoverability and cross-tool
 
 `CnbExchangeRateSource` needs the public CNB daily rates document URL. We also want to avoid creating a new `HttpClient` on every call (socket churn and related issues).
 
-### Decision
-
-- Store the CNB **daily kurz** URL in `**appsettings.json`** (under the Task project, e.g. `[Task/appsettings.json](Task/appsettings.json)`), read through `**IConfiguration**`, so the endpoint can change without editing code.
-- Use `**IHttpClientFactory**` (e.g. `AddHttpClient` / typed or named client registration) to obtain `**HttpClient**` instances with correct **lifetime and handler pooling**, instead of `new HttpClient()` inside the source.
-
-### Why this choice
-
-- **Config file:** separates environment-specific or future URL changes from compiled logic; matches common .NET hosting patterns.
-- **HttpClient factory:** recommended default for production-style .NET apps; addresses lifetime concerns that a per-call `new HttpClient()` does not.
-
-### Consequences
-
-- The console app composition root (`[Task/Program.cs](Task/Program.cs)`) should build configuration (JSON), register HTTP clients, and pass settings into `CnbExchangeRateSource` (or bind options) as part of the user’s implementation.
-- Additional **NuGet** packages are expected for configuration + HTTP client extensions (e.g. `Microsoft.Extensions.Configuration.Json`, `Microsoft.Extensions.Http`, and hosting/DI primitives as needed)—exact packages follow the chosen bootstrap style (`Host`, `ServiceCollection`, etc.).
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Store the CNB daily kurz URL in [`Task/appsettings.json`](Task/appsettings.json), read through `IConfiguration`. | Separates environment-specific or future URL changes from compiled logic and matches common .NET hosting patterns. | The console app composition root ([`Task/Program.cs`](Task/Program.cs)) should build configuration and bind/pass settings into `CnbExchangeRateSource`. |
+| Use `IHttpClientFactory` via `AddHttpClient` to obtain `HttpClient` instances. | This is the recommended default for production-style .NET apps and addresses lifetime concerns that a per-call `new HttpClient()` does not. | Additional NuGet packages are expected for configuration and HTTP client extensions, such as `Microsoft.Extensions.Configuration.Json`, `Microsoft.Extensions.Http`, and hosting/DI primitives as needed. |
 
 ## Generic host for console bootstrap (`Host.CreateApplicationBuilder`)
 
@@ -74,48 +42,23 @@ We considered adding a root-level `AGENTS.md` for discoverability and cross-tool
 
 The Task executable needs JSON configuration (e.g. CNB URL), options binding (`Configure<CnbOptions>`), and `AddHttpClient` registration. The main alternative is a **manual** stack: `ConfigurationBuilder` + `ServiceCollection` without a host.
 
-### Decision
-
-Bootstrap the console app with `**Host.CreateApplicationBuilder(args)`** (generic host): use `**builder.Configuration**` and `**builder.Services**` for options, HTTP clients, and other DI registrations, then `**Build()**` and resolve services.
-
-### Why this choice
-
-- **Single, conventional pipeline:** default `appsettings` loading (and environment-specific files) plus DI in one place, matching current .NET guidance for small executables.
-- **Less boilerplate** than assembling `ConfigurationBuilder`, `Build()`, and `ServiceCollection` by hand for the same features.
-
-### Alternatives considered
-
-- **Manual `ServiceCollection` + `ConfigurationBuilder` only:** valid when minimizing dependencies or when another host already owns configuration/DI; not chosen for this Task project.
-
-### Consequences
-
-- Add `**Microsoft.Extensions.Hosting`** (and `**Microsoft.Extensions.Http**` for `AddHttpClient`) to the Task project; implement `[Task/Program.cs](Task/Program.cs)` around the host builder instead of only `new`ing types in `Main`.
-- `Configure<CnbOptions>(builder.Configuration.GetSection(…))` and related registrations live next to other `builder.Services` calls in the composition root.
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Bootstrap the console app with `Host.CreateApplicationBuilder(args)`. | It gives one conventional pipeline for default `appsettings` loading, environment-specific files, configuration, and DI. | Add `Microsoft.Extensions.Hosting` and `Microsoft.Extensions.Http` to the Task project; implement [`Task/Program.cs`](Task/Program.cs) around the host builder instead of only `new`ing types in `Main`. |
+| Use `builder.Configuration` and `builder.Services` for options, HTTP clients, and DI registrations, then `Build()` and resolve services. | This uses less boilerplate than assembling `ConfigurationBuilder`, `Build()`, and `ServiceCollection` by hand for the same features. | `Configure<CnbOptions>(builder.Configuration.GetSection(...))` and related registrations live next to other `builder.Services` calls in the composition root. |
+| Do not use only a manual `ServiceCollection` + `ConfigurationBuilder` stack for this task. | The manual stack is valid when minimizing dependencies or when another host already owns configuration/DI, but that is not needed here. | The project follows the generic-host style consistently. |
 
 ## Use `Microsoft.Extensions.Options` (`IOptions<CnbOptions>`), not a custom `IOptions` type
 
 ### Context
 
-It is tempting to add a small project-local interface (e.g. a non-generic `IOptions` with `DailyKurzUrl`) to abstract configuration for `[CnbExchangeRateSource](Task/CnbExchangeRateSource.cs)`.
+It is tempting to add a small project-local interface (e.g. a non-generic `IOptions` with `DailyKurzUrl`) to abstract configuration for [`CnbExchangeRateSource`](Task/CnbExchangeRateSource.cs).
 
-### Decision
-
-- **Do not** introduce a custom `**IOptions`** (or similarly named) interface in the Task project for this purpose.
-- Inject `**IOptions<CnbOptions>**` from `**Microsoft.Extensions.Options**` (pulled in via the hosting/options stack), bind settings with `**Configure<CnbOptions>(…)**`, and read the URL via `**options.Value**` (e.g. `**options.Value.DailyKurzUrl**`).
-
-### Why this choice
-
-- The name `**IOptions**` and the `**IOptions<T>**` pattern are **standard in .NET**; a local `**IOptions`** type **collides conceptually** with `**IOptions<T>`** and confuses readers, docs, and `using` resolution.
-- `**Configure<CnbOptions>**` is already the chosen wiring; `**IOptions<CnbOptions>**` is the **intended** consumer API for that binding.
-
-### Alternatives considered
-
-- **Custom interface** (e.g. `ICnbSettings`) if we ever need an extra indirection for tests—use a **distinct name** that does not overlap `**IOptions<T>`**.
-
-### Consequences
-
-- `[CnbExchangeRateSource](Task/CnbExchangeRateSource.cs)` should take `**IOptions<CnbOptions>**` (plus `**HttpClient**` from `**IHttpClientFactory**`), not a hand-rolled options interface.
-- Remove any obsolete `**IOptions.cs**` in `[Task](Task)` that duplicates this role.
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Do not introduce a custom `IOptions` or similarly named interface in the Task project. | `IOptions` and `IOptions<T>` are standard .NET names; a local `IOptions` type would collide conceptually and confuse readers, docs, and `using` resolution. | [`CnbExchangeRateSource`](Task/CnbExchangeRateSource.cs) should not take a hand-rolled options interface. |
+| Inject `IOptions<CnbOptions>` from `Microsoft.Extensions.Options`, bind settings with `Configure<CnbOptions>(...)`, and read the URL via `options.Value`. | `Configure<CnbOptions>` is already the chosen wiring, and `IOptions<CnbOptions>` is the intended consumer API for that binding. | [`CnbExchangeRateSource`](Task/CnbExchangeRateSource.cs) should take `IOptions<CnbOptions>` plus `HttpClient` from `IHttpClientFactory`. |
+| If extra indirection is needed later, use a distinct custom name such as `ICnbSettings`. | A distinct name avoids overlap with the standard `IOptions<T>` pattern. | Remove or avoid any obsolete `IOptions.cs` in [`Task`](Task) that duplicates this role. |
 
 ## Composition root in `Program.cs` (no default `ExchangeRateProvider` ctor)
 
@@ -123,25 +66,11 @@ It is tempting to add a small project-local interface (e.g. a non-generic `IOpti
 
 `ExchangeRateProvider` depends on `IExchangeRateSource`. A common shortcut is a parameterless constructor that chains to `new CnbExchangeRateSource()` (or similar) so callers can write `new ExchangeRateProvider()` without wiring.
 
-### Decision
-
-- **Do not** add a parameterless `ExchangeRateProvider()` that internally `new`s a concrete source.
-- Treat `**[Program.cs](Task/Program.cs)`** as the **composition root**: the executable constructs the concrete `IExchangeRateSource` implementation and passes it to `new ExchangeRateProvider(IExchangeRateSource)`.
-
-### Why this choice
-
-- Dependencies stay **visible** at the application entry point.
-- `ExchangeRateProvider` avoids **hard-coding** a single concrete source implementation.
-- Aligns with explicit DI-style composition without pulling in a full container for this small task.
-
-### Alternatives considered
-
-- Parameterless ctor delegating to `new CnbExchangeRateSource()`: fewer lines in `Program`, but hides the dependency and couples the provider to one default implementation.
-
-### Consequences
-
-- Every runnable entry point must create or receive an `IExchangeRateSource` before constructing `ExchangeRateProvider`.
-- Unit tests continue to inject fakes via the same constructor; no convenience ctor is required for production.
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Do not add a parameterless `ExchangeRateProvider()` that internally `new`s a concrete source. | Dependencies stay visible at the application entry point, and `ExchangeRateProvider` avoids hard-coding a single concrete source implementation. | Every runnable entry point must create or receive an `IExchangeRateSource` before constructing `ExchangeRateProvider`. |
+| Treat [`Program.cs`](Task/Program.cs) as the composition root. | This aligns with explicit DI-style composition without pulling in a full container for this small task. | Unit tests continue to inject fakes via the same constructor; no convenience ctor is required for production. |
+| Do not use a parameterless constructor that delegates to `new CnbExchangeRateSource()`. | That shortcut would reduce lines in `Program`, but it hides the dependency and couples the provider to one default implementation. | The provider remains source-agnostic and easier to test. |
 
 ## CNB source owns CNB-specific parsing
 
@@ -149,28 +78,13 @@ It is tempting to add a small project-local interface (e.g. a non-generic `IOpti
 
 `IExchangeRateSource` could either return the raw CNB daily rates text (for example `Task<string>`) and leave parsing to `ExchangeRateProvider`, or return normalized `ExchangeRate` objects after handling the source-specific document format.
 
-### Decision
-
-- `IExchangeRateSource` returns parsed `ExchangeRate` objects.
-- `CnbExchangeRateSource` owns both fetching the CNB daily document and parsing that CNB-specific text format.
-- `ExchangeRateProvider` should not depend on raw CNB text or a `Task<string>` fetch contract; it receives already-normalized rates from `IExchangeRateSource`.
-- Keep parser helpers such as `ParseCnbDailyKurz` non-public; do not make them public only to call them from tests.
-- Do **not** introduce a parser interface for now.
-
-### Why this choice
-
-- The CNB document shape (header rows, pipe-delimited columns, comma/dot decimal handling, amount/rate normalization) is specific to the CNB implementation.
-- Keeping parsing in the concrete source keeps `ExchangeRateProvider` generic: it can orchestrate source -> filter -> return without knowing about CNB text files.
-- Avoiding `Task<string>` in `ExchangeRateProvider` prevents the provider from becoming coupled to one source's transport format and keeps its responsibility focused on application-level orchestration/filtering.
-- Public members should describe supported production behavior, not expose implementation details solely for test access.
-- A parser interface would add ceremony before there are multiple parsers or a need to test parsing independently from the source class.
-
-### Consequences
-
-- Provider tests should fake `IExchangeRateSource` by returning `ExchangeRate` instances, not raw text snippets.
-- CNB parsing tests belong with `CnbExchangeRateSource` and can use stubbed HTTP responses.
-- Parsing coverage should exercise `CnbExchangeRateSource.GetExchangeRates(...)` with controlled HTTP responses instead of calling `ParseCnbDailyKurz` directly.
-- If another bank/source is added later, it should get its own implementation that fetches and parses its own format into `ExchangeRate` objects.
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| `IExchangeRateSource` returns parsed `ExchangeRate` objects. | Avoiding `Task<string>` in `ExchangeRateProvider` prevents the provider from becoming coupled to one source's transport format and keeps its responsibility focused on orchestration and filtering. | Provider tests should fake `IExchangeRateSource` by returning `ExchangeRate` instances, not raw text snippets. |
+| `CnbExchangeRateSource` owns both fetching the CNB daily document and parsing the CNB-specific text format. | The CNB document shape, including header rows, pipe-delimited columns, comma/dot decimal handling, and amount/rate normalization, is specific to the CNB implementation. | CNB parsing tests belong with `CnbExchangeRateSource` and can use stubbed HTTP responses. |
+| `ExchangeRateProvider` receives already-normalized rates from `IExchangeRateSource`. | Keeping parsing in the concrete source keeps `ExchangeRateProvider` generic: it can orchestrate source -> filter -> return without knowing about CNB text files. | If another bank/source is added later, it should get its own implementation that fetches and parses its own format into `ExchangeRate` objects. |
+| Keep parser helpers such as `ParseCnbDailyKurz` non-public. | Public members should describe supported production behavior, not expose implementation details solely for test access. | Parsing coverage should exercise `CnbExchangeRateSource.GetExchangeRates(...)` with controlled HTTP responses instead of calling `ParseCnbDailyKurz` directly. |
+| Do not introduce a parser interface for now. | A parser interface would add ceremony before there are multiple parsers or a need to test parsing independently from the source class. | Revisit this only if multiple parsers or a separate parsing lifecycle appear. |
 
 ## Use xUnit for unit tests
 
@@ -178,70 +92,12 @@ It is tempting to add a small project-local interface (e.g. a non-generic `IOpti
 
 We need a first unit-test setup for the .NET backend task and must choose a test framework.
 
-### Decision
-
-Use `xUnit` as the default unit testing framework for `Task.Tests`.
-
-### Why this choice
-
-- Strong and common ecosystem support in modern .NET projects.
-- Simple test model with `[Fact]` and `[Theory]` for readable test cases.
-- Works smoothly with `dotnet test` and CI runners.
-- Minimal setup overhead for a small task codebase.
-
-### Detailed comparison vs NUnit and MSTest
-
-#### xUnit
-
-Pros
-
-- Default-first mindset for modern .NET OSS templates and examples.
-- Strong parameterized test support via `[Theory]` + data attributes.
-- Constructor-based setup encourages explicit dependencies and cleaner tests.
-- Good parallelization defaults, typically helping test runtime.
-
-Cons
-
-- If a team is historically NUnit/MSTest-heavy, migration has small friction.
-- Setup/teardown style differs from classic attribute lifecycle patterns.
-
-#### NUnit
-
-Pros
-
-- Very mature and feature-rich framework.
-- Familiar attribute model (`[Test]`, `[SetUp]`, `[TestCase]`) for many teams.
-- Great parameterized testing ergonomics and broad extension ecosystem.
-
-Cons
-
-- Adds another style divergence if the repo already aligns with xUnit examples.
-- Attribute-heavy lifecycle can encourage broader fixture coupling in some codebases.
-- For this small task, extra framework features are not required.
-
-#### MSTest
-
-Pros
-
-- Microsoft-native option, recognized in enterprise .NET environments.
-- Straightforward for teams already standardized on Visual Studio test conventions.
-- Good integration with Azure DevOps pipelines and enterprise templates.
-
-Cons
-
-- Less commonly preferred in modern community samples compared with xUnit/NUnit.
-- Typical test style can be more verbose for simple behavior-driven unit tests.
-- Parameterized/data-driven tests are solid, but usually less ergonomic than xUnit/NUnit.
-
-### Alternatives considered
-
-- `NUnit`: also mature and good, but no strong project-specific reason to prefer it here.
-- `MSTest`: built-in option, but often less preferred for concise, modern test ergonomics.
-
-### Consequences
-
-- Test examples and conventions in this repository should assume xUnit attributes and assertions.
-- If we later need richer fluent assertions or mocking, we can add packages without changing the test framework.
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Use `xUnit` as the default unit testing framework for `Task.Tests`. | It has strong and common ecosystem support in modern .NET projects, a simple `[Fact]` / `[Theory]` model, smooth `dotnet test` integration, and minimal setup overhead for a small codebase. | Test examples and conventions in this repository should assume xUnit attributes and assertions. |
+| Prefer xUnit's constructor-based setup and data-driven tests for this task. | Constructor-based setup encourages explicit dependencies and cleaner tests; `[Theory]` plus data attributes gives strong parameterized test support. | If a team is historically NUnit/MSTest-heavy, migration has small friction because lifecycle patterns differ. |
+| Do not choose NUnit for this task. | NUnit is mature, feature-rich, familiar to many teams, and has strong parameterized testing, but there is no project-specific reason to prefer it here. | Avoids another style divergence; extra NUnit features are not required for this small task. |
+| Do not choose MSTest for this task. | MSTest is Microsoft-native and enterprise-friendly, but it is usually more verbose for simple behavior-driven tests and less commonly preferred in modern community samples. | If we later need richer fluent assertions or mocking, we can add packages without changing the test framework. |
 
 ## Keep `ExchangeRateProvider.GetExchangeRates` synchronous
 
@@ -249,23 +105,11 @@ Cons
 
 The assignment-facing API already exposes `ExchangeRateProvider.GetExchangeRates(...)` as a synchronous method returning `IEnumerable<ExchangeRate>`. The concrete CNB source uses HTTP, where the natural .NET API is asynchronous.
 
-### Decision
-
-- Keep `ExchangeRateProvider.GetExchangeRates(...)` synchronous for this task.
-- Keep `IExchangeRateSource.GetExchangeRates(...)` asynchronous so the source can use async HTTP APIs.
-- Use a deliberate sync-over-async boundary inside `ExchangeRateProvider` when calling the source.
-
-### Why this choice
-
-- It preserves the public provider API expected by the exercise and existing callers.
-- It keeps HTTP-specific async behavior inside the source abstraction instead of pushing it through the whole console app for this small task.
-- The boundary is explicit and localized, so it can be changed later if the public API moves to async.
-
-### Consequences
-
-- `ExchangeRateProvider` blocks while waiting for the source result.
-- This is acceptable for the current console assignment, but a server or high-concurrency app should prefer an async provider API such as `GetExchangeRatesAsync`.
-- If the task evolves to support a fully async public surface, update `Program.cs`, provider tests, and this decision.
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Keep `ExchangeRateProvider.GetExchangeRates(...)` synchronous for this task. | It preserves the public provider API expected by the exercise and existing callers. | `ExchangeRateProvider` blocks while waiting for the source result. |
+| Keep `IExchangeRateSource.GetExchangeRates(...)` asynchronous so the source can use async HTTP APIs. | It keeps HTTP-specific async behavior inside the source abstraction instead of pushing it through the whole console app for this small task. | This is acceptable for the current console assignment, but a server or high-concurrency app should prefer an async provider API such as `GetExchangeRatesAsync`. |
+| Use a deliberate sync-over-async boundary inside `ExchangeRateProvider` when calling the source. | The boundary is explicit and localized, so it can be changed later if the public API moves to async. | If the task evolves to support a fully async public surface, update `Program.cs`, provider tests, and this decision. |
 
 ## Keep requested-currency filtering in `ExchangeRateProvider`
 
@@ -273,19 +117,11 @@ The assignment-facing API already exposes `ExchangeRateProvider.GetExchangeRates
 
 `IExchangeRateSource.GetExchangeRates(...)` accepted the requested currencies even though the current source design returns all parsed CNB rows and the provider filters them afterward.
 
-### Decision
+CNB publishes rates as foreign currency against CZK, so `CZK` is implicit in each parsed rate such as `USD/CZK`.
 
-- Make `IExchangeRateSource.GetExchangeRates()` parameterless.
-- Keep the requested `Currency` collection on `ExchangeRateProvider.GetExchangeRates(...)`, where filtering happens.
-
-### Why this choice
-
-- The source contract stays focused on fetching and parsing source-provided rates.
-- `ExchangeRateProvider` remains the single place that applies the assignment's requested-currency filtering rules.
-- Avoids an unused parameter in `CnbExchangeRateSource` and fake source implementations.
-
-### Consequences
-
-- Source implementations cannot selectively fetch or filter by requested currencies through the interface.
-- If a future source needs request-aware fetching for performance, revisit the source contract deliberately.
+| Decision | Why this choice | Consequences |
+| --- | --- | --- |
+| Make `IExchangeRateSource.GetExchangeRates()` parameterless. | The source contract stays focused on fetching and parsing source-provided rates. | Source implementations cannot selectively fetch or filter by requested currencies through the interface. |
+| Keep the requested `Currency` collection on `ExchangeRateProvider.GetExchangeRates(...)`, where filtering happens. | `ExchangeRateProvider` remains the single place that applies the assignment's requested-currency filtering rules. Avoids an unused parameter in `CnbExchangeRateSource` and fake source implementations. | If a future source needs request-aware fetching for performance, revisit the source contract deliberately. |
+| Treat requested currencies as requested source currencies; `USD` is enough to return the source-provided `USD/CZK` rate. | This matches CNB's real data format and avoids requiring callers to pass `CZK` redundantly when every CNB rate is already against CZK. | This assumes the source's target currency is implicit. If a future source supports multiple target currencies, revisit the provider API, for example with `sourceCurrencies + targetCurrency` or explicit currency pairs. |
 

@@ -40,22 +40,22 @@ flowchart LR
 
 1. **Fetch** — Implement `IExchangeRateSource` + concrete CNB type (CNB URL, `HttpClient`, options). Inject `IExchangeRateSource` into `ExchangeRateProvider` via constructor. The concrete source fetches the raw CNB daily text and returns parsed `ExchangeRate` objects without taking requested currencies.
 2. **Parse** — Inside `CnbExchangeRateSource`, from the raw text: skip CNB header lines, split data lines by `|`, read country/code/amount/rate fields, **normalise** “rate per `Amount` units” into a single `decimal` suitable for `ExchangeRate.Value`, and build `ExchangeRate` instances with the **correct** `SourceCurrency` / `TargetCurrency` convention (CNB publishes foreign currency vs CZK — match what the task expects, typically one leg CZK).
-3. **Filter** — Keep using `GetFilteredRates` logic for “only pairs involving requested currencies” and **do not** synthesise inverse pairs ([`Task.Tests/ExchangeRateProviderFilteringTests.cs`](Task.Tests/ExchangeRateProviderFilteringTests.cs) encodes that). [`Task/Currency.cs`](Task/Currency.cs) now implements value equality by `Code`, so `currencies.Contains(rate.SourceCurrency)` works for separate `Currency` instances with the same ISO code.
+3. **Filter** — Keep using `GetFilteredRates` logic for requested source currencies and **do not** synthesise inverse pairs ([`Task.Tests/ExchangeRateProviderFilteringTests.cs`](Task.Tests/ExchangeRateProviderFilteringTests.cs) encodes that). CNB publishes rates as foreign currency against CZK, so `CZK` is implicit and does not need to be requested. [`Task/Currency.cs`](Task/Currency.cs) now implements value equality by `Code`, so `currencies.Contains(rate.SourceCurrency)` works for separate `Currency` instances with the same ISO code.
 4. **Return** — `GetExchangeRates` returns `IEnumerable<ExchangeRate>` as today; remove or relocate the scratch comments at the bottom of `ExchangeRateProvider.cs` once behaviour is implemented.
 
 ## Wiring and tests
 
 - **Composition:** [`Task/Program.cs`](Task/Program.cs) is the composition root. It wires the real `IExchangeRateSource` implementation and passes it to `ExchangeRateProvider` via DI or explicit construction.
-- **Tests to update/add:**
+- **Tests:**
   - [`Task.Tests/ExchangeRateProviderTests.cs`](Task.Tests/ExchangeRateProviderTests.cs): pass a fake `IExchangeRateSource`; assert empty vs non-empty using canned `ExchangeRate` instances.
-  - [`Task.Tests/ExchangeRateProviderFilteringTests.cs`](Task.Tests/ExchangeRateProviderFilteringTests.cs): `InvokeGetFilteredRates` uses `new ExchangeRateProvider()` — update to a ctor that accepts a dummy source (or a test-specific helper) once the provider requires `IExchangeRateSource`.
+  - [`Task.Tests/ExchangeRateProviderFilteringTests.cs`](Task.Tests/ExchangeRateProviderFilteringTests.cs): invoke `GetFilteredRates` through reflection with an `ExchangeRateProvider` constructed from a dummy fake source.
   - [`Task.Tests/CnbExchangeRateSourceIntegrationTests.cs`](Task.Tests/CnbExchangeRateSourceIntegrationTests.cs): use stubbed HTTP responses to cover CNB document parsing and HTTP failures.
 
 ## Checklist (high level)
 
 - [x] Add `IExchangeRateSource` + CNB HTTP implementation; inject into `ExchangeRateProvider` ctor
 - [x] Parse raw CNB text to `IEnumerable<ExchangeRate>` inside `CnbExchangeRateSource` (headers, pipes, amount/rate normalisation, CZK leg)
-- [x] Fix filtering vs `Currency` equality if needed; wire `GetExchangeRates` end-to-end
+- [x] Filter by requested source currencies using `Currency` equality; wire `GetExchangeRates` end-to-end
 - [x] Update `Program` composition to wire source into provider
 - [x] Adjust provider/filtering tests to use fake or dummy sources; keep source tests for HTTP parsing
 
