@@ -2,11 +2,11 @@
 
 Hi there! This guide is the starting point for reading the implemented .NET backend task. The original assignment files are still present, this file explains what was built, where the supporting documents live, and how to run the solution locally.
 
-What was requested on this assignment is simple, so at first glance, it might look as if all these files are overwork, but I just wanted to show how I typically design my projects, in terms of architecture, design principles, and testing, as if it was a production ready app.
+Although the assignment is small, I intentionally used a production-oriented structure to demonstrate how I approach maintainable code: clear responsibilities, explicit dependencies, documented decisions, and focused tests.
 
 I also documented every decision, and created multiple documents to explain my thought process. I used Cursor while coding this project, so you may also find a .mdc file which tells which were the collaboration rules agreed with Cursor's AI Agents.
 
-> **Note:** This PR is squashed into one clean commit on top of the latest upstream `master`. The work was developed incrementally, but the final branch was rebuilt to keep the review focused on the backend solution instead of unrelated fork-history differences.
+**Note:** This PR is squashed into a few clean commits on top of the latest upstream `master`. The work was developed incrementally, but the final branch was rebuilt to keep the review focused on the backend solution instead of unrelated fork-history differences.
 
 ## What This Implements
 
