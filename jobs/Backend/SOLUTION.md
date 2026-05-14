@@ -1,10 +1,10 @@
 # Backend Solution Guide - Nicolas Darriulat
 
-Hi there! This guide is the starting point for reading the implemented .NET backend task. The original assignment files are still present; this file explains what was built, where the supporting documents live, and how to run the solution locally.
+Hi there! This guide is the starting point for reading the implemented .NET backend task. The original assignment files are still present, this file explains what was built, where the supporting documents live, and how to run the solution locally.
 
 What was requested from this assignment is simple, so at first glance, it might look as if all these files are overwork, but I just wanted to show how I typically design my projects, in terms of architecture, desing principles, and testing, as if it was a production ready app.
 
-I also documented every decision, and created multiple documents to explain my thought process.
+I also documented every decision, and created multiple documents to explain my thought process. I used Cursor while coding this project, so you may also find a .mdc file which tells which were the collaboration rules agreed with Cursor's AI Agents.
 
 ## What This Implements
 
@@ -19,18 +19,20 @@ CNB publishes rates as foreign currency against CZK. For example, requesting `US
 3. `[docs/PLAN.md](docs/PLAN.md)` - the implementation plan and high-level flow.
 4. `[docs/DECISIONS.md](docs/DECISIONS.md)` - the engineering decisions and tradeoffs.
 5. `[docs/TEST_CASES.md](docs/TEST_CASES.md)` - the documented test matrix.
+6. `[.cursor/rules/collaboration-and-docs.mdc](../../.cursor/rules/collaboration-and-docs.mdc)` - the collaboration rules agreed with Cursor's AI agents.
 
 ## Document Map
 
 
-| Document                                   | Purpose                                                                |
-| ------------------------------------------ | ---------------------------------------------------------------------- |
-| `[Readme.md](Readme.md)`                   | Backend task index that links to the available backend exercises.      |
-| `[SOLUTION.md](SOLUTION.md)`               | Reader-oriented guide for this implementation and local commands.      |
-| `[DotNet.md](DotNet.md)`                   | Original task description for the .NET implementation.                 |
-| `[docs/PLAN.md](docs/PLAN.md)`             | Current implementation plan, flow, checklist, and scope notes.         |
-| `[docs/DECISIONS.md](docs/DECISIONS.md)`   | Decision log explaining the main design choices and consequences.      |
-| `[docs/TEST_CASES.md](docs/TEST_CASES.md)` | Test coverage matrix for provider, filtering, and CNB source behavior. |
+| Document                                                                                     | Purpose                                                                         |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `[Readme.md](Readme.md)`                                                                     | Backend task index that links to the available backend exercises.               |
+| `[SOLUTION.md](SOLUTION.md)`                                                                 | Reader-oriented guide for this implementation and local commands.               |
+| `[DotNet.md](DotNet.md)`                                                                     | Original task description for the .NET implementation.                          |
+| `[docs/PLAN.md](docs/PLAN.md)`                                                               | Current implementation plan, flow, checklist, and scope notes.                  |
+| `[docs/DECISIONS.md](docs/DECISIONS.md)`                                                     | Decision log explaining the main design choices and consequences.               |
+| `[docs/TEST_CASES.md](docs/TEST_CASES.md)`                                                   | Test coverage matrix for provider, filtering, and CNB source behavior.          |
+| `[.cursor/rules/collaboration-and-docs.mdc](../../.cursor/rules/collaboration-and-docs.mdc)` | Collaboration rules agreed with Cursor's AI agents while building this project. |
 
 
 ## Code Structure
@@ -83,4 +85,4 @@ The tests use xUnit. Provider tests use fake `IExchangeRateSource` implementatio
 
 ## Production Notes
 
-The main production-oriented choices are documented in [`docs/DECISIONS.md`](docs/DECISIONS.md): `HttpClient` creation through `IHttpClientFactory`, configuration through `appsettings.json` with startup validation, configurable CNB retries/timeouts through `Microsoft.Extensions.Http.Resilience`, source-specific parsing inside `CnbExchangeRateSource`, and a deliberate sync-over-async boundary to preserve the assignment-facing provider API.
+The main production-oriented choices are documented in `[docs/DECISIONS.md](docs/DECISIONS.md)`: `HttpClient` creation through `IHttpClientFactory`, configuration through `appsettings.json` with startup validation, configurable CNB retries/timeouts through `Microsoft.Extensions.Http.Resilience`, source-specific parsing inside `CnbExchangeRateSource`, and a deliberate sync-over-async boundary to preserve the assignment-facing provider API.
