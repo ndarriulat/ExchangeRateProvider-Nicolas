@@ -8,7 +8,7 @@ using Xunit;
 public class ExchangeRateProviderFilteringTests
 {
     [Fact]
-    public void GetFilteredRates_returns_only_rates_whose_both_currency_codes_are_requested()
+    public void GetFilteredRates_returns_rates_for_requested_source_currency()
     {
         var usd = new Currency("USD");
         var czk = new Currency("CZK");
@@ -19,7 +19,7 @@ public class ExchangeRateProviderFilteringTests
             new ExchangeRate(eur, czk, 24.0m),
         };
 
-        var filteredRates = InvokeGetFilteredRates(cnbRates, new List<Currency> { usd, czk }).ToList();
+        var filteredRates = InvokeGetFilteredRates(cnbRates, new List<Currency> { usd }).ToList();
 
         Assert.Single(filteredRates);
         Assert.Equal("USD", filteredRates[0].SourceCurrency.Code);
@@ -50,7 +50,7 @@ public class ExchangeRateProviderFilteringTests
             new ExchangeRate(usd, czk, 25.0m),
         };
 
-        var filteredRates = InvokeGetFilteredRates(cnbRates, new List<Currency> { usd, czk }).ToList();
+        var filteredRates = InvokeGetFilteredRates(cnbRates, new List<Currency> { usd }).ToList();
 
         Assert.Single(filteredRates);
         Assert.DoesNotContain(filteredRates, r => r.SourceCurrency.Code == "CZK" && r.TargetCurrency.Code == "USD");

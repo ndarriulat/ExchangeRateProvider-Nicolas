@@ -16,14 +16,14 @@ public class ExchangeRateProviderTests
     }
 
     [Fact]
-    public void GetExchangeRates_WhenBothCurrenciesRequested_ReturnsThatRate()
+    public void GetExchangeRates_WhenOneExistingCurrencyRequested_ReturnsThatRate()
     {
         var usd = new Currency("USD");
         var czk = new Currency("CZK");
         var sourceRates = new[] { new ExchangeRate(usd, czk, 25m) };
         var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
 
-        var rates = provider.GetExchangeRates(new List<Currency> { usd, czk }).ToList();
+        var rates = provider.GetExchangeRates(new List<Currency> { usd }).ToList();
 
         Assert.Single(rates);
         Assert.Same(usd, rates[0].SourceCurrency);
@@ -40,7 +40,7 @@ public class ExchangeRateProviderTests
         };
         var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
 
-        var rates = provider.GetExchangeRates(new List<Currency> { new Currency("USD"), new Currency("CZK") }).ToList();
+        var rates = provider.GetExchangeRates(new List<Currency> { new Currency("USD") }).ToList();
 
         Assert.Single(rates);
         Assert.Equal("USD", rates[0].SourceCurrency.Code);
@@ -75,7 +75,7 @@ public class ExchangeRateProviderTests
     }
 
     [Fact]
-    public void GetExchangeRates_WhenMultipleRequested_IncludesOnlyRatesWhoseBothCurrenciesWereRequested()
+    public void GetExchangeRates_WhenMultipleRequested_IncludesOnlyRatesWhoseSourceCurrencyWasRequested()
     {
         var usd = new Currency("USD");
         var eur = new Currency("EUR");
@@ -87,14 +87,14 @@ public class ExchangeRateProviderTests
         };
         var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
 
-        var rates = provider.GetExchangeRates(new List<Currency> { usd, czk }).ToList();
+        var rates = provider.GetExchangeRates(new List<Currency> { usd }).ToList();
 
         Assert.Single(rates);
         Assert.Same(usd, rates[0].SourceCurrency);
     }
 
     [Fact]
-    public void GetExchangeRates_WhenTargetCurrencyRequestedWithSomeSources_ReturnsOnlyPairsWhoseBothCurrenciesWereRequested()
+    public void GetExchangeRates_WhenMultipleSourceCurrenciesRequested_ReturnsRatesForThoseSourcesOnly()
     {
         var usd = new Currency("USD");
         var eur = new Currency("EUR");
@@ -110,7 +110,7 @@ public class ExchangeRateProviderTests
 
         var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
 
-        var rates = provider.GetExchangeRates(new[] { usd, eur, czk }).ToList();
+        var rates = provider.GetExchangeRates(new[] { usd, eur }).ToList();
 
         Assert.Equal(2, rates.Count);
         Assert.Contains(rates, r => r.SourceCurrency == usd && r.TargetCurrency == czk);
@@ -126,7 +126,7 @@ public class ExchangeRateProviderTests
         var sourceRates = new[] { new ExchangeRate(usd, czk, 25m) };
         var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
 
-        var rates = provider.GetExchangeRates(new List<Currency> { usd, czk, new Currency("XYZ") }).ToList();
+        var rates = provider.GetExchangeRates(new List<Currency> { usd, new Currency("XYZ") }).ToList();
 
         Assert.Single(rates);
         Assert.Same(usd, rates[0].SourceCurrency);
@@ -140,7 +140,7 @@ public class ExchangeRateProviderTests
         var sourceRates = new[] { new ExchangeRate(usd, czk, 25m) };
         var provider = new ExchangeRateProvider(new FakeExchangeRateSource(sourceRates));
 
-        var rates = provider.GetExchangeRates(new List<Currency> { usd, czk }).ToList();
+        var rates = provider.GetExchangeRates(new List<Currency> { usd }).ToList();
 
         Assert.Single(rates);
         Assert.Contains(rates, r => r.SourceCurrency == usd && r.TargetCurrency == czk);

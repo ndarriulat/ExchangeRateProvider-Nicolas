@@ -34,7 +34,7 @@ namespace ExchangeRateUpdater
 
         private IEnumerable<ExchangeRate> GetFilteredRates(IEnumerable<ExchangeRate> cnbRates, IEnumerable<Currency> currencies)
         {
-            return cnbRates.Where(rate => currencies.Contains(rate.SourceCurrency) && currencies.Contains(rate.TargetCurrency));
+            return cnbRates.Where(rate => currencies.Contains(rate.SourceCurrency));
         }
     }
 }
